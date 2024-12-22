@@ -139,38 +139,7 @@ impl VertexGrid {
         let mut forces_to_apply: Vec<(Vec2d, Vec2d)> = Vec::new();
         self.effects
             .for_each(|effect: &mut Effect, _: usize| match effect {
-                Effect::Circular(e) => {
-                    e.time_to_live -= deltaT;
-                    if e.time_to_live > 0.0 {
-                        e.radius += e.expansion_speed * deltaT;
-
-                        // all vertices within the radius of the effect
-                        // are affected
-                        let start_pos = e.center - (Vec2d::new(e.radius, e.radius) * 0.5f32);
-                        let num_x_steps = (e.radius / GRID_DISTANCE) as usize;
-                        let num_y_steps = (e.radius / GRID_DISTANCE) as usize;
-
-                        for i in 0..=num_y_steps {
-                            for j in 0..=num_x_steps {
-                                let current_pos = start_pos
-                                    + Vec2d::new(
-                                        j as f32 * GRID_DISTANCE,
-                                        i as f32 * GRID_DISTANCE,
-                                    );
-
-                                let mut the_force = e.center - current_pos;
-                                if the_force.is_not_zero() {
-                                    // force gets weaker as it closes in on its ttl
-                                    the_force = the_force.normalized() * e.time_to_live * 500.0;
-                                } else {
-                                    the_force = Vec2d::default();
-                                }
-
-                                forces_to_apply.push((the_force, current_pos));
-                            }
-                        }
-                    }
-                }
+                Effect::Circular(e) => circle_effect_tick(e, deltaT, &mut forces_to_apply),
             });
 
         self.effects.garbage_collect_filter(|x| match x {
@@ -225,6 +194,42 @@ impl VertexGrid {
                 i += 1;
             }
             current_col += 1;
+        }
+    }
+}
+
+fn circle_effect_tick(
+    e: &mut CircularEffect,
+    deltaT: f32,
+    forces_to_apply: &mut Vec<(Vec2d, Vec2d)>,
+) {
+    e.time_to_live -= deltaT;
+    if e.time_to_live > 0.0 {
+        e.radius += e.expansion_speed * deltaT;
+
+        // all vertices within the radius of the effect
+        // are affected
+        let start_pos = e.center - (Vec2d::new(e.radius, e.radius) * 0.5f32);
+        let num_x_steps = (e.radius / GRID_DISTANCE) as usize;
+        let num_y_steps = (e.radius / GRID_DISTANCE) as usize;
+
+        // This is obviously not quite circular but rectangular. However in the final
+        // effect that is not too noticeable
+        for i in 0..=num_y_steps {
+            for j in 0..=num_x_steps {
+                let current_pos =
+                    start_pos + Vec2d::new(j as f32 * GRID_DISTANCE, i as f32 * GRID_DISTANCE);
+
+                let mut the_force = e.center - current_pos;
+                if the_force.is_not_zero() {
+                    // force gets weaker as it closes in on its ttl
+                    the_force = the_force.normalized() * e.time_to_live * 500.0;
+                } else {
+                    the_force = Vec2d::default();
+                }
+
+                forces_to_apply.push((the_force, current_pos));
+            }
         }
     }
 }

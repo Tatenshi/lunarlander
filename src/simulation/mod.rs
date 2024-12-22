@@ -103,10 +103,11 @@ impl FloatingText {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum State {
     Running,
     Lost,
+    WaitingForRespawn(f32),
 }
 
 pub struct World {
@@ -121,6 +122,9 @@ pub struct World {
     hud: hud::Hud,
     game_state: State,
     score: u32,
+    lifes: u32,
+    multiplier: f32,
+    kills_this_life: u32,
     screen_size: Vec2d,
     sound: sound::Sound,
     axis_l_x: i16,
@@ -177,6 +181,9 @@ impl World {
             missiles: ObjectStore::new(),
             grid: VertexGrid::new(),
             score: 0,
+            lifes: 3,
+            kills_this_life: 0,
+            multiplier: 1.0,
             sound: sound::Sound::new(),
             screen_size: Vec2d {
                 x: window_width as f32,
@@ -313,29 +320,52 @@ impl World {
     }
 
     pub fn tick(&mut self, time_in_ms: f32, tick_resolution_in_ms: f32) {
-        if self.game_state != State::Running {
-            return;
-        }
-
         let sim_time_in_seconds = time_in_ms / 1000.0;
         let mut num_ticks = (sim_time_in_seconds / tick_resolution_in_ms) as usize;
         if num_ticks == 0 {
             num_ticks = 1;
         }
 
-        self.apply_control();
+        self.game_state = match self.game_state {
+            State::Running => {
+                self.apply_control();
+                self.do_gameplay_ticks(sim_time_in_seconds, num_ticks, time_in_ms);
+                self.game_state
+            }
+            State::WaitingForRespawn(time) => {
+                if time <= 0.0 {
+                    let id = self.starship.entity_id;
+                    self.entities.with(id, |e: &mut Entity| {
+                        e.set_position(Vec2d::new(WORLD_SIZE.x / 2.0, WORLD_SIZE.y / 2.0));
+                        e.set_direction(Vec2d::default());
+                        e.set_acceleration(Vec2d::default());
+                        e.set_angle(0.0);
+                    });
+                    self.reset_control();
+                    State::Running
+                } else {
+                    State::WaitingForRespawn(time - sim_time_in_seconds)
+                }
+            }
+            _ => return,
+        };
 
+        self.texts_tick(time_in_ms);
+        self.explosion_tick();
+        self.grid.tick(time_in_ms);
+
+        self.sound.play_background_music();
+    }
+
+    fn do_gameplay_ticks(&mut self, sim_time_in_seconds: f32, num_ticks: usize, time_in_ms: f32) {
         self.entities
             .for_each(|e: &mut Entity, _: usize| e.physics_tick(sim_time_in_seconds, num_ticks));
 
         self.missile_tick(time_in_ms);
         self.dismiss_dead_missiles();
         self.enemy_tick();
-        self.texts_tick(time_in_ms);
-        self.explosion_tick();
-        self.grid.tick(time_in_ms);
+
         self.do_collision_detection();
-        self.sound.play_background_music();
     }
 
     pub(crate) fn render(
@@ -346,6 +376,7 @@ impl World {
         match self.game_state {
             State::Lost => render_game_over(canvas, self.screen_size / 2.0),
             State::Running => (),
+            State::WaitingForRespawn(_) => {}
         }
 
         let starship_entity = self.entities.get_object(self.starship.entity_id);
@@ -360,7 +391,11 @@ impl World {
         self.render_enemies(canvas, screen_space_transform, textures);
         self.render_explosions(canvas, screen_space_transform, textures);
         self.render_texts(canvas, screen_space_transform);
-        self.render_starship(&starship_entity, screen_space_transform, canvas, textures);
+
+        if self.game_state == State::Running {
+            self.render_starship(&starship_entity, screen_space_transform, canvas, textures);
+        }
+
         self.render_missiles(screen_space_transform, canvas);
         self.render_hud(canvas);
     }
@@ -543,61 +578,77 @@ impl World {
     }
 
     fn do_collision_detection(&mut self) {
+        if self.game_state != State::Running {
+            return;
+        }
+
         let id = self.starship.entity_id;
-        let lander_entity = self.entities.get_object(id);
-        let lander_position = lander_entity.position();
+        let player_entity = self.entities.get_object(id);
+        let player_position = player_entity.position();
 
         let mut enemies_to_delete = Vec::<usize>::new();
         let mut missiles_to_delete = Vec::<usize>::new();
         let mut minirect_spawns = Vec::<usize>::new();
 
-        let mut new_hit_points: u32 = 0;
+        let mut new_score: u32 = 0;
         let mut new_texts: Vec<FloatingText> = Vec::new();
+
+        let mut swapped_enemies = ObjectStore::new();
+        std::mem::swap(&mut self.enemies, &mut swapped_enemies);
+
+        let mut swapped_missiles = ObjectStore::new();
+        std::mem::swap(&mut self.missiles, &mut swapped_missiles);
+
         //for enemy in self.enemies.iter() {
-        self.enemies.for_each(|enemy, _| {
+        swapped_enemies.for_each_immutable(|enemy, _| {
             // create collidable hull for entity:
             let enemy_ent = self.entities.get_object(enemy.entity_id);
             let enemy_pos = enemy_ent.position();
-            let enemy_transform = enemy_ent.get_transform();
-            let scale_transform =
-                vecmath::TransformationMatrix::scale(ENTITY_SCALE.x, ENTITY_SCALE.y);
-            let hull_transform = enemy_transform * scale_transform;
-            let enemy_hull = hull_transform.transform_many(&enemy.hull.to_vec());
-            let collision = collision::hit_test(lander_position, &enemy_hull); // Primitive! This will only ever trigger, if the center of the starship is inside the asteroid.
+            let hull_transform = make_entity_transform(enemy_ent);
+            let enemy_hull = hull_transform.transform_many_slice(enemy.hull);
+
+            let collision = collision::hit_test(player_position, &enemy_hull);
             if collision {
                 self.sound.die();
-                self.game_state = State::Lost;
+                // Ideally, make a huge explosion.
+                if self.lifes > 0 && self.game_state == State::Running {
+                    self.lifes -= 1;
+                    self.kills_this_life = 0;
+                    self.multiplier = 1.0;
+                    self.game_state = State::WaitingForRespawn(4.0);
+                } else {
+                    self.game_state = State::Lost;
+                }
             }
+
             // Check collision against missiles
-            self.missiles.for_each(|missile, _| {
+            swapped_missiles.for_each_immutable(|missile, _| {
                 let missile_entity = self.entities.get_object(missile.entity_id);
                 let projectile_collision =
                     collision::hit_test(missile_entity.position(), &enemy_hull);
 
                 if projectile_collision {
-                    self.sound.explode();
-                    enemies_to_delete.push(enemy.entity_id);
-                    self.grid
-                        .add_circular_effect(enemy_pos, 32.0, 1.8f32, 128.0f32);
-
-                    if !missiles_to_delete.contains(&missile.entity_id) {
-                        missiles_to_delete.push(missile.entity_id);
-                    }
-
-                    new_hit_points += enemy.get_score();
-                    if enemy.ty == EnemyType::SpawningRect {
-                        minirect_spawns.push(missile.entity_id);
-                    }
-                    new_texts.push(FloatingText::new(
+                    self.kill_enemy(
+                        &mut enemies_to_delete,
+                        enemy,
                         enemy_pos,
-                        format!("{}", enemy.get_score()),
-                    ));
-                    self.explosions.push(Explosion::new(enemy_pos));
+                        &mut missiles_to_delete,
+                        missile,
+                        &mut new_score,
+                        &mut minirect_spawns,
+                        &mut new_texts,
+                    );
                 }
             });
         });
 
-        self.update_score(new_hit_points);
+        // swap back:
+        std::mem::swap(&mut self.enemies, &mut swapped_enemies);
+
+        // swap back:
+        std::mem::swap(&mut self.missiles, &mut swapped_missiles);
+
+        self.update_score(new_score);
         self.texts.extend(new_texts);
 
         self.spawn_minirects(minirect_spawns);
@@ -608,6 +659,55 @@ impl World {
         self.garbage_collect_entities(&enemies_to_delete);
         self.enemies
             .garbage_collect_filter(|a| enemies_to_delete.contains(&a.entity_id))
+    }
+
+    fn do_player_collision_detection(&mut self, player_position: Vec2d, enemy_hull: &Vec<Vec2d>) {
+        let collision = collision::hit_test(player_position, enemy_hull);
+        if collision {
+            self.sound.die();
+            // Ideally, make a huge explosion.
+            if self.lifes > 0 && self.game_state == State::Running {
+                self.lifes -= 1;
+                self.kills_this_life = 0;
+                self.multiplier = 1.0;
+                self.game_state = State::WaitingForRespawn(4.0);
+            } else {
+                self.game_state = State::Lost;
+            }
+        }
+    }
+
+    #[inline]
+    fn kill_enemy(
+        &mut self,
+        enemies_to_delete: &mut Vec<usize>,
+        enemy: &Enemy<'_>,
+        enemy_pos: Vec2d,
+        missiles_to_delete: &mut Vec<usize>,
+        missile: &Missile,
+        new_hit_points: &mut u32,
+        minirect_spawns: &mut Vec<usize>,
+        new_texts: &mut Vec<FloatingText>,
+    ) {
+        self.sound.explode();
+        self.kills_this_life += 1;
+        enemies_to_delete.push(enemy.entity_id);
+        self.grid
+            .add_circular_effect(enemy_pos, 32.0, 1.8f32, 128.0f32);
+
+        if !missiles_to_delete.contains(&missile.entity_id) {
+            missiles_to_delete.push(missile.entity_id);
+        }
+
+        *new_hit_points += enemy.get_score();
+        if enemy.ty == EnemyType::SpawningRect {
+            minirect_spawns.push(missile.entity_id);
+        }
+        new_texts.push(FloatingText::new(
+            enemy_pos,
+            format!("{}", enemy.get_score()),
+        ));
+        self.explosions.push(Explosion::new(enemy_pos));
     }
 
     fn spawn_minirects(&mut self, minirect_spawns: Vec<usize>) {
@@ -838,4 +938,20 @@ impl World {
             }
         }
     }
+
+    fn reset_control(&mut self) {
+        self.active_controle_scheme = ActiveControleScheme::Keyboard;
+        self.axis_l_x = 0;
+        self.axis_l_y = 0;
+        self.axis_r_x = 0;
+        self.axis_r_y = 0;
+        self.game_control_bits = 0;
+    }
+}
+
+fn make_entity_transform(enemy_ent: Entity) -> TransformationMatrix {
+    let enemy_transform = enemy_ent.get_transform();
+    let scale_transform = vecmath::TransformationMatrix::scale(ENTITY_SCALE.x, ENTITY_SCALE.y);
+    let hull_transform = enemy_transform * scale_transform;
+    hull_transform
 }

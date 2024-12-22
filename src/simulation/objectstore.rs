@@ -48,6 +48,13 @@ where
         }
     }
 
+    pub fn for_each_immutable(&self, mut f: impl FnMut(&T, usize)) {
+        let objects = self.objects.borrow();
+        for e in objects.iter() {
+            f(&e.inner, e.id);
+        }
+    }
+
     fn id_to_index(&self, id: usize) -> usize {
         let mut idx = 0;
         let objects = self.objects.borrow_mut();

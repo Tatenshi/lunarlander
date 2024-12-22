@@ -168,6 +168,15 @@ impl TransformationMatrix {
         }
         result
     }
+
+    // variant of transform_many that takes a slice:
+    pub fn transform_many_slice(&self, v: &[Vec2d]) -> Vec<Vec2d> {
+        let mut result: Vec<Vec2d> = Vec::new();
+        for vector in v.iter() {
+            result.push(self.transform(vector));
+        }
+        result
+    }
 }
 
 impl std::ops::Mul<TransformationMatrix> for TransformationMatrix {
