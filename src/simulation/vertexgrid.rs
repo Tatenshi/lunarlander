@@ -111,7 +111,7 @@ impl VertexGrid {
         }
     }
 
-    pub fn apply_force(&mut self, force: Vec2d, pos: Vec2d, deltaT: f32) {
+    pub fn apply_force(&mut self, force: Vec2d, pos: Vec2d, delta_t: f32) {
         let x = ((pos.x as i32) / GRID_DISTANCE as i32) as i32;
         let y = ((pos.y as i32) / GRID_DISTANCE as i32) as i32;
 
@@ -124,7 +124,7 @@ impl VertexGrid {
         // Stupid defensive programming here...
         if index < self.grid.len() {
             // clip max force to 500 units
-            let mut next_dir = self.grid[index].direction() + force * deltaT;
+            let mut next_dir = self.grid[index].direction() + force * delta_t;
             if next_dir.is_not_zero() {
                 if next_dir.len() > 250.0 {
                     next_dir = next_dir.normalized() * 250.0;
@@ -135,11 +135,11 @@ impl VertexGrid {
     }
 
     pub fn tick(&mut self, time_in_ms: f32) {
-        let deltaT = time_in_ms / 1000.0;
+        let delta_t = time_in_ms / 1000.0;
         let mut forces_to_apply: Vec<(Vec2d, Vec2d)> = Vec::new();
         self.effects
             .for_each(|effect: &mut Effect, _: usize| match effect {
-                Effect::Circular(e) => circle_effect_tick(e, deltaT, &mut forces_to_apply),
+                Effect::Circular(e) => circle_effect_tick(e, delta_t, &mut forces_to_apply),
             });
 
         self.effects.garbage_collect_filter(|x| match x {
@@ -147,7 +147,7 @@ impl VertexGrid {
         });
 
         for (force, pos) in forces_to_apply {
-            self.apply_force(force, pos, deltaT);
+            self.apply_force(force, pos, delta_t);
         }
 
         for elem in self.grid.iter_mut() {
@@ -200,12 +200,12 @@ impl VertexGrid {
 
 fn circle_effect_tick(
     e: &mut CircularEffect,
-    deltaT: f32,
+    delta_t: f32,
     forces_to_apply: &mut Vec<(Vec2d, Vec2d)>,
 ) {
-    e.time_to_live -= deltaT;
+    e.time_to_live -= delta_t;
     if e.time_to_live > 0.0 {
-        e.radius += e.expansion_speed * deltaT;
+        e.radius += e.expansion_speed * delta_t;
 
         // all vertices within the radius of the effect
         // are affected

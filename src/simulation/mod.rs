@@ -5,7 +5,7 @@ use std::f32::consts::PI;
 use rand::{thread_rng, Rng};
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
-use sdl2::render::{BlendMode, Texture};
+use sdl2::render::Texture;
 
 use crate::graphics::{
     self, render_game_over, ENTITY_SCALE, MINIRECT_ENEMY, MISSILE, RECT_ENEMY, ROMBUS_ENEMY,
@@ -396,7 +396,7 @@ impl World {
             self.render_starship(&starship_entity, screen_space_transform, canvas, textures);
         }
 
-        self.render_missiles(screen_space_transform, canvas);
+        self.render_missiles(screen_space_transform, canvas, textures);
         self.render_hud(canvas);
     }
 
@@ -404,13 +404,21 @@ impl World {
         &mut self,
         screen_space_transform: TransformationMatrix,
         canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+        textures: &HashMap<String, Texture>,
     ) {
         self.missiles.for_each(|missile, _| {
             let entity = self.entities.get_object(missile.entity_id);
             let scale = vecmath::TransformationMatrix::scale(7f32, 7f32);
             let entity_trans = entity.get_screenspace_transform(screen_space_transform) * scale;
             let vecs = entity_trans.transform_many(&MISSILE.to_vec());
-            let _ = draw::draw_lines(canvas, &vecs, Color::RGBA(255, 255, 255, 255), true);
+            let texture = textures.get("neon").unwrap();
+            let _ = draw::neon_draw_lines(
+                canvas,
+                &vecs,
+                Color::RGBA(255, 255, 255, 255),
+                true,
+                texture,
+            );
         });
     }
 
@@ -659,22 +667,6 @@ impl World {
         self.garbage_collect_entities(&enemies_to_delete);
         self.enemies
             .garbage_collect_filter(|a| enemies_to_delete.contains(&a.entity_id))
-    }
-
-    fn do_player_collision_detection(&mut self, player_position: Vec2d, enemy_hull: &Vec<Vec2d>) {
-        let collision = collision::hit_test(player_position, enemy_hull);
-        if collision {
-            self.sound.die();
-            // Ideally, make a huge explosion.
-            if self.lifes > 0 && self.game_state == State::Running {
-                self.lifes -= 1;
-                self.kills_this_life = 0;
-                self.multiplier = 1.0;
-                self.game_state = State::WaitingForRespawn(4.0);
-            } else {
-                self.game_state = State::Lost;
-            }
-        }
     }
 
     #[inline]

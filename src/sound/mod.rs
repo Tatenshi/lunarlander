@@ -1,7 +1,7 @@
-use rodio::{source::Source, Decoder, OutputStream, OutputStreamHandle, Sink};
+use rodio::{source::Source, OutputStream, OutputStreamHandle, Sink};
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::Read;
 
 use std::convert::AsRef;
 use std::io;
@@ -67,7 +67,7 @@ impl Sound {
 
     fn play_sample(&self, sample_name: &str) {
         if let Some(snd) = self.samples.get(sample_name) {
-            //let _ = self.stream_handle.play_raw(snd.decoder().convert_samples());
+            let _ = self.stream_handle.play_raw(snd.decoder().convert_samples());
         }
     }
 
@@ -86,7 +86,7 @@ impl Sound {
     pub fn play_background_music(&mut self) {
         if let Some(snd) = self.samples.get("./assets/2.mp3") {
             if self.bg_music_sink.len() < 10 {
-                //self.bg_music_sink.append(snd.decoder());
+                self.bg_music_sink.append(snd.decoder());
             }
         }
     }
