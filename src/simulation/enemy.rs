@@ -6,8 +6,8 @@ use sdl2::render::Texture;
 use crate::{
     draw,
     graphics::{
-        self, MINIRECT_ENEMY, MINIRECT_ENEMY_COLOR, RECT_ENEMY, RECT_ENEMY_COLOR, ROMBUS_ENEMY,
-        ROMBUS_ENEMY_COLOR, WANDERER_ENEMY, WANDERER_ENEMY_COLOR,
+        self, BLACK_HOLE_ENEMY, MINIRECT_ENEMY, MINIRECT_ENEMY_COLOR, RECT_ENEMY, RECT_ENEMY_COLOR,
+        ROMBUS_ENEMY, ROMBUS_ENEMY_COLOR, WANDERER_ENEMY, WANDERER_ENEMY_COLOR,
     },
     vecmath::{self, TransformationMatrix, Vec2d},
 };
@@ -15,6 +15,7 @@ use crate::{
 use super::{
     entity::Entity,
     objectstore::{ObjectDefault, ObjectStore},
+    vertexgrid::VertexGrid,
     Missile,
 };
 
@@ -25,6 +26,7 @@ pub enum EnemyType {
     Wanderer,
     SpawningRect,
     MiniRect,
+    BlackHole,
     Invalid,
 }
 
@@ -34,6 +36,7 @@ pub struct Enemy<'a> {
     pub ty: EnemyType,
     pub hull: &'a [Vec2d],
     pub num_ticks: u32,
+    pub hitpoints: u32,
 }
 
 impl ObjectDefault for Enemy<'_> {
@@ -43,6 +46,7 @@ impl ObjectDefault for Enemy<'_> {
             ty: EnemyType::Invalid,
             hull: &[],
             num_ticks: 0,
+            hitpoints: 1,
         }
     }
 }
@@ -56,6 +60,7 @@ impl Enemy<'_> {
             EnemyType::Wanderer => 200,
             EnemyType::SpawningRect => 200,
             EnemyType::MiniRect => 50,
+            EnemyType::BlackHole => 500,
         };
     }
 
@@ -64,6 +69,7 @@ impl Enemy<'_> {
         entities: &ObjectStore<Entity>,
         player_id: usize,
         missiles: &ObjectStore<Missile>,
+        grid: &mut super::vertexgrid::VertexGrid,
     ) {
         let ty = self.ty;
         let playerpos = entities.get_object(player_id).position().clone();
@@ -75,7 +81,8 @@ impl Enemy<'_> {
             EnemyType::Wanderer => self.wanderer_tick(entities),
             EnemyType::SpawningRect => self.rect_tick(entities, playerpos, missiles),
             EnemyType::MiniRect => self.rect_tick(entities, playerpos, missiles),
-            _ => {}
+            EnemyType::BlackHole => self.black_hole_tick(entities, grid),
+            EnemyType::Invalid => todo!(),
         }
     }
 
@@ -107,6 +114,10 @@ impl Enemy<'_> {
             }
             EnemyType::MiniRect => {
                 items = &MINIRECT_ENEMY;
+                col = MINIRECT_ENEMY_COLOR;
+            }
+            EnemyType::BlackHole => {
+                items = &BLACK_HOLE_ENEMY;
                 col = MINIRECT_ENEMY_COLOR;
             }
             EnemyType::Invalid => todo!(),
@@ -146,6 +157,7 @@ impl Enemy<'_> {
             EnemyType::Wanderer => todo!(),
             EnemyType::SpawningRect => 100f32,
             EnemyType::MiniRect => 250f32 * (1.0f32 + vel_factor),
+            EnemyType::BlackHole => todo!(),
             EnemyType::Invalid => todo!(),
         };
         let current_pos;
@@ -196,6 +208,44 @@ impl Enemy<'_> {
                 ent.set_acceleration(ent.direction() * MAX_VEL * vel_factor);
                 ent.set_max_velocity(MAX_VEL * vel_factor);
             }
+        });
+    }
+
+    fn black_hole_tick(&self, world: &ObjectStore<Entity>, grid: &mut VertexGrid) {
+        // slightly pull all entities towards the black hole:
+        let my_pos = world.get_object(self.entity_id).position();
+        let num_growth_cycles = self.num_ticks as f32 / 500.0f32;
+        // adjust pullstrength depending on age of black hole:
+        let pull_factor = 1.0f32 + num_growth_cycles * 0.35;
+
+        // have pull strenght falloff at distance:
+        let mut falloff_range = 100f32 * num_growth_cycles;
+        if falloff_range > 900f32 {
+            falloff_range = 900f32;
+        }
+
+        grid.add_circular_effect(my_pos, falloff_range, 0.25, 0.1);
+
+        world.with(self.entity_id, |ent| {
+            ent.set_acceleration(Vec2d::new(0f32, 0f32));
+            ent.set_direction(Vec2d::new(0f32, 0f32));
+            ent.set_max_velocity(0.0f32);
+        });
+
+        world.for_each(|ent: &mut Entity, id: usize| {
+            if id == self.entity_id {
+                return;
+            }
+            let pos = ent.position();
+            let dist = (pos - my_pos).len();
+            let dir = (my_pos - pos).normalized() * 800f32;
+            let mut dist_falloff = 1.0f32 - (dist / falloff_range);
+            if dist_falloff < 0.0f32 {
+                dist_falloff = 0.0f32;
+            }
+
+            let gravity = ent.gravity();
+            ent.set_gravity(gravity + ((dir * pull_factor) * dist_falloff));
         });
     }
 }

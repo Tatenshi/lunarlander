@@ -8,8 +8,8 @@ use sdl2::rect::{Point, Rect};
 use sdl2::render::Texture;
 
 use crate::graphics::{
-    self, render_game_over, ENTITY_SCALE, MINIRECT_ENEMY, MISSILE, RECT_ENEMY, ROMBUS_ENEMY,
-    STARSHIP_COLOR,
+    self, render_game_over, BLACK_HOLE_ENEMY, ENTITY_SCALE, MINIRECT_ENEMY, MISSILE, RECT_ENEMY,
+    ROMBUS_ENEMY, STARSHIP_COLOR,
 };
 use crate::sound;
 use crate::vecmath::TransformationMatrix;
@@ -32,7 +32,7 @@ mod vertexgrid;
 use self::objectstore::{ObjectDefault, ObjectStore};
 use self::vertexgrid::VertexGrid;
 
-const MAX_ACCELERATION: f32 = 800.0;
+const MAX_ACCELERATION: f32 = 400.0;
 const VELOCITY_SPACESHIP: f32 = 450.0;
 const VELOCITY_MISSILE: f32 = 800.0;
 
@@ -514,18 +514,25 @@ impl World {
         self.spawn_enemies();
 
         self.enemies.for_each(|enemy, _| {
-            enemy.tick(&self.entities, self.starship.entity_id, &self.missiles);
+            enemy.tick(
+                &self.entities,
+                self.starship.entity_id,
+                &self.missiles,
+                &mut self.grid,
+            );
         });
     }
 
     fn spawn_enemies(&mut self) {
-        const ENEMY_DISTRIBUTION: [f32; 5] = [0.2, 0.4, 0.8, 0.99, 1.0];
+        //const ENEMY_DISTRIBUTION: [f32; 6] = [0.2, 0.4, 0.8, 0.9, 0.0, 1.0];
+        const ENEMY_DISTRIBUTION: [f32; 6] = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0];
 
-        if self.enemies.len() < 50 {
+        if self.enemies.len() < 1 {
             let should_spawn = thread_rng().gen_ratio(1, 100);
 
             if should_spawn {
                 let num_to_spawn = thread_rng().gen_range(2..10);
+                let num_to_spawn = 1;
 
                 for _ in 0..num_to_spawn {
                     let pos = self.make_safe_enemy_position();
@@ -533,8 +540,13 @@ impl World {
                         //let enemy_type = thread_rng().gen_range(0..EnemyType::Invalid as usize);
 
                         //select actual enemy type based on distribution
-                        let rnd = thread_rng().gen_range(0.0..1.0);
-                        let enemy_type = ENEMY_DISTRIBUTION.iter().position(|&x| x > rnd).unwrap();
+                        let rnd = thread_rng().gen_range(0.0..=1.0);
+                        let enemy_type =
+                            if let Some(index) = ENEMY_DISTRIBUTION.iter().position(|&x| rnd < x) {
+                                index
+                            } else {
+                                panic!("no valid distribution: {}", rnd)
+                            };
 
                         let enemy;
                         match enemy_type {
@@ -544,6 +556,7 @@ impl World {
                                     entity_id: entity_index,
                                     hull: &ROMBUS_ENEMY,
                                     num_ticks: 0,
+                                    hitpoints: 1,
                                 }
                             }
                             1 => {
@@ -552,6 +565,7 @@ impl World {
                                     entity_id: entity_index,
                                     hull: &RECT_ENEMY,
                                     num_ticks: 0,
+                                    hitpoints: 1,
                                 }
                             }
                             2 => {
@@ -560,6 +574,7 @@ impl World {
                                     entity_id: entity_index,
                                     hull: &RECT_ENEMY,
                                     num_ticks: 0,
+                                    hitpoints: 1,
                                 }
                             }
                             3 => {
@@ -568,6 +583,7 @@ impl World {
                                     entity_id: entity_index,
                                     hull: &RECT_ENEMY,
                                     num_ticks: 0,
+                                    hitpoints: 1,
                                 }
                             }
                             4 => {
@@ -577,6 +593,16 @@ impl World {
                                     entity_id: entity_index,
                                     hull: &MINIRECT_ENEMY,
                                     num_ticks: 0,
+                                    hitpoints: 1,
+                                }
+                            }
+                            5 => {
+                                enemy = Enemy {
+                                    ty: EnemyType::BlackHole,
+                                    entity_id: entity_index,
+                                    hull: &BLACK_HOLE_ENEMY,
+                                    num_ticks: 0,
+                                    hitpoints: 10,
                                 }
                             }
                             _ => {
@@ -585,6 +611,7 @@ impl World {
                                     entity_id: entity_index,
                                     hull: &RECT_ENEMY,
                                     num_ticks: 0,
+                                    hitpoints: 1,
                                 }
                             }
                         }
@@ -622,8 +649,7 @@ impl World {
 
         let mut player_died = false;
 
-        //for enemy in self.enemies.iter() {
-        swapped_enemies.for_each_immutable(|enemy, _| {
+        swapped_enemies.for_each(|enemy, _| {
             // create collidable hull for entity:
             let enemy_ent = self.entities.get_object(enemy.entity_id);
             let enemy_pos = enemy_ent.position();
@@ -659,16 +685,21 @@ impl World {
                     collision::hit_test(missile_entity.position(), &enemy_hull);
 
                 if projectile_collision {
-                    self.kill_enemy(
-                        &mut enemies_to_delete,
-                        enemy,
-                        enemy_pos,
-                        &mut missiles_to_delete,
-                        missile,
-                        &mut new_score,
-                        &mut minirect_spawns,
-                        &mut new_texts,
-                    );
+                    enemy.hitpoints -= 1;
+                    if enemy.hitpoints == 0 {
+                        self.kill_enemy(
+                            &mut enemies_to_delete,
+                            enemy,
+                            enemy_pos,
+                            &mut missiles_to_delete,
+                            missile,
+                            &mut new_score,
+                            &mut minirect_spawns,
+                            &mut new_texts,
+                        );
+                    } else {
+                        missiles_to_delete.push(missile.entity_id);
+                    }
                 }
             });
         });
@@ -747,6 +778,7 @@ impl World {
                         ty: EnemyType::MiniRect,
                         hull: &MINIRECT_ENEMY,
                         num_ticks: 0,
+                        hitpoints: 1,
                     };
                     self.enemies.insert_object(minirect);
                 });
@@ -802,11 +834,11 @@ impl World {
             draw::neon_draw_lines(canvas, &geometry, STARSHIP_COLOR, true, texture).unwrap();
         }
 
-        if self.starship.drive_enabled {
-            let geometry;
-            geometry = transform.transform_many(&graphics::FLAME_A.to_vec());
-            draw::draw_lines(canvas, &geometry, Color::RGB(255, 255, 255), true).unwrap();
-        }
+        // if self.starship.drive_enabled {
+        //     let geometry;
+        //     geometry = transform.transform_many(&graphics::FLAME_A.to_vec());
+        //     draw::draw_lines(canvas, &geometry, Color::RGB(255, 255, 255), true).unwrap();
+        // }
 
         let lander_center = screen_space_transform.transform(&lander_entity.position());
         let _ = canvas.copy(

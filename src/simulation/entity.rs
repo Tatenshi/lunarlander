@@ -8,6 +8,7 @@ pub struct Entity {
     angle: f32,          // angle in rad
     direction: Vec2d,    // non normalized, has speed integrated!
     acceleration: Vec2d, // non normalized, has force integrated!
+    gravity: Vec2d,      // external force, non normalized
     max_velocity: f32,
     border_behavior: BorderBehavior,
     update: bool,
@@ -26,6 +27,7 @@ impl Entity {
             angle: 0.0,
             direction: Vec2d::default(),
             acceleration: Vec2d::default(),
+            gravity: Vec2d::default(),
             max_velocity: 0.0,
             border_behavior: BorderBehavior::Dismiss,
             update: true,
@@ -57,6 +59,14 @@ impl Entity {
 
     pub fn velocity(&self) -> f32 {
         return self.direction.len();
+    }
+
+    pub fn gravity(&self) -> Vec2d {
+        return self.gravity;
+    }
+
+    pub fn set_gravity(&mut self, gravity: Vec2d) {
+        self.gravity = gravity;
     }
 
     pub fn acceleration(&self) -> Vec2d {
@@ -110,7 +120,8 @@ impl Entity {
             }
             // update direction by applying acceleration:
             let accel_fragment = self.acceleration().clone() * (sim_time_in_seconds);
-            self.set_direction(self.direction() + accel_fragment);
+            let gravity_fragment = self.gravity.clone(); // * (sim_time_in_seconds);
+            self.set_direction(self.direction() + accel_fragment + gravity_fragment);
 
             self.set_direction(if self.direction().len() > self.max_velocity() {
                 self.direction().normalized() * self.max_velocity()
@@ -134,7 +145,6 @@ impl Entity {
                             self.position() + self.direction().clone() * (sim_time_in_seconds);
                         self.acceleration = self.acceleration() * -1.0;
                         self.direction = self.direction() * -1.0;
-                        
                     }
                     BorderBehavior::BounceSlowdown => {
                         self.set_direction(self.direction() * -0.2);
@@ -143,6 +153,7 @@ impl Entity {
                     }
                 }
             }
+            self.gravity = Vec2d::default();
             self.set_position(new_pos);
         }
     }
