@@ -132,6 +132,9 @@ impl Entity {
                         self.set_direction(self.direction() * -1.0);
                         new_pos =
                             self.position() + self.direction().clone() * (sim_time_in_seconds);
+                        self.acceleration = self.acceleration() * -1.0;
+                        self.direction = self.direction() * -1.0;
+                        
                     }
                     BorderBehavior::BounceSlowdown => {
                         self.set_direction(self.direction() * -0.2);
