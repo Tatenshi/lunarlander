@@ -1,3 +1,5 @@
+use core::panic;
+
 use sdl2::pixels::Color;
 
 use crate::{
@@ -106,7 +108,7 @@ impl VertexGrid {
         for &i in indices.iter() {
             let dir = missile_pos - self.grid[i].position();
             if dir.len() > 0.01 {
-                self.grid[i].add_to_dir(dir.normalized() * 10.0);
+                self.grid[i].add_to_dir(dir.normalized() * 0.06);
             }
         }
     }
@@ -124,12 +126,13 @@ impl VertexGrid {
         // Stupid defensive programming here...
         if index < self.grid.len() {
             // clip max force to 500 units
-            let mut next_dir = self.grid[index].direction() + force * delta_t;
-            if next_dir.is_not_zero() {
-                if next_dir.len() > 250.0 {
-                    next_dir = next_dir.normalized() * 250.0;
-                }
-            }
+            let current_dir = self.grid[index].direction();
+            let next_dir = /*current_dir +*/ force * delta_t;
+            // if next_dir.is_not_zero() {
+            //     if next_dir.len() > 250.0 {
+            //         next_dir = next_dir.normalized() * 250.0;
+            //     }
+            // }
             self.grid[index].add_to_dir(next_dir);
         }
     }
@@ -152,7 +155,7 @@ impl VertexGrid {
 
         for elem in self.grid.iter_mut() {
             elem.mov();
-            elem.set_dir_back();
+            elem.set_dir_back(delta_t);
         }
     }
 
@@ -220,15 +223,56 @@ fn circle_effect_tick(
                 let current_pos =
                     start_pos + Vec2d::new(j as f32 * GRID_DISTANCE, i as f32 * GRID_DISTANCE);
 
-                let mut the_force = e.center - current_pos;
-                if the_force.is_not_zero() {
-                    // force gets weaker as it closes in on its ttl
-                    the_force = the_force.normalized() * e.time_to_live * 500.0;
-                } else {
-                    the_force = Vec2d::default();
+                if (current_pos - e.center).len() > e.radius * 0.5 {
+                    continue;
                 }
 
-                forces_to_apply.push((the_force, current_pos));
+                // Calculate force to apply:
+                // The force gets weaker as a function of the distance to the center
+                // The force gets weaker, as the effect's ttl gets closer to 0
+                let vec_to_center = e.center - current_pos;
+                if vec_to_center.is_zero() {
+                    continue;
+                }
+
+                let distance_to_center = vec_to_center.len();
+                let fragment_of_radius = distance_to_center / (e.radius * 0.5);
+
+                // have the strength decrease in a sinusoidal fashion in the last 25% of the range:
+                let force_strength = if fragment_of_radius > 0.75 {
+                    // this will produce a value in 0..1.0, where:
+                    // 1.0 = vertex is at the outermost position
+                    // 0.0 = vertex is at the 75% mark
+                    let outer_fragment = (fragment_of_radius - 0.75) / 0.25;
+
+                    // create sine shaped falloff: Falloff is zero at 0.75 and 1 at 1.0:
+                    let falloff = ((1.0 - outer_fragment) * std::f32::consts::PI).sin();
+                    falloff
+                } else if fragment_of_radius < 0.25 {
+                    // this will produce a value in 0..1.0, where:
+                    // 0.0 = vertex is at the innermost position
+                    // 1.0 = vertex is at the 25% mark
+                    let inner_fragment = 1.0 - fragment_of_radius / 0.25;
+                    // create sine shaped falloff: Falloff is zero at 0.75 and 1 at 1.0:
+                    let falloff = ((inner_fragment) * std::f32::consts::PI).sin();
+                    falloff
+                } else {
+                    1.0f32
+                };
+
+                // Adding the radius makes the effect too strong, so we scale it down a bit
+                let output_force =
+                    vec_to_center.normalized() * e.radius * 0.25 * force_strength * delta_t;
+
+                if output_force.isnan() {
+                    panic!("force is nan");
+                }
+
+                if output_force.is_inf() {
+                    panic!("force is inf");
+                }
+
+                forces_to_apply.push((output_force, current_pos));
             }
         }
     }

@@ -361,6 +361,11 @@ impl World {
         self.entities
             .for_each(|e: &mut Entity, _: usize| e.physics_tick(sim_time_in_seconds, num_ticks));
 
+        self.entities
+            .with(self.starship.entity_id, |e: &mut Entity| {
+                self.grid.intersect_grid(e.position());
+            });
+
         self.missile_tick(time_in_ms);
         self.dismiss_dead_missiles();
         self.enemy_tick();
@@ -524,15 +529,16 @@ impl World {
     }
 
     fn spawn_enemies(&mut self) {
-        //const ENEMY_DISTRIBUTION: [f32; 6] = [0.2, 0.4, 0.8, 0.9, 0.0, 1.0];
-        const ENEMY_DISTRIBUTION: [f32; 6] = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0];
+        //return;
+        const ENEMY_DISTRIBUTION: [f32; 6] = [0.2, 0.4, 0.8, 0.9, 0.0, 1.0];
+        //const ENEMY_DISTRIBUTION: [f32; 6] = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0];
 
         if self.enemies.len() < 1 {
             let should_spawn = thread_rng().gen_ratio(1, 100);
 
             if should_spawn {
                 let num_to_spawn = thread_rng().gen_range(2..10);
-                let num_to_spawn = 1;
+                //let num_to_spawn = 1;
 
                 for _ in 0..num_to_spawn {
                     let pos = self.make_safe_enemy_position();

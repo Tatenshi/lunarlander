@@ -2,56 +2,51 @@ use sdl2::{pixels::Color, rect::Point};
 
 use crate::{draw, vecmath::Vec2d};
 
-pub const STARSHIP: [Vec2d; 5] = [
+pub const STARSHIP: [Vec2d; 4] = [
     Vec2d::new(0.0, 0.0),
     Vec2d::new(1.0, -1.0),
     Vec2d::new(0.0, 2.0),
     Vec2d::new(-1.0, -1.0),
-    Vec2d::new(0.0, 0.0),
 ];
 
 pub const ENTITY_SCALE: Vec2d = Vec2d::new(15.0, 15.0);
 pub const STARSHIP_COLOR: Color = Color::RGBA(255, 255, 188, 255);
 
-pub const RECT_ENEMY: [Vec2d; 5] = [
+pub const RECT_ENEMY: [Vec2d; 4] = [
     Vec2d::new(1.0, 1.0),
     Vec2d::new(-1.0, 1.0),
     Vec2d::new(-1.0, -1.0),
     Vec2d::new(1.0, -1.0),
-    Vec2d::new(1.0, 1.0),
 ];
 
 pub const RECT_ENEMY_COLOR: Color = Color::RGBA(0, 255, 0, 255);
 
-pub const MINIRECT_ENEMY: [Vec2d; 5] = [
+pub const MINIRECT_ENEMY: [Vec2d; 4] = [
     Vec2d::new(0.5, 0.5),
     Vec2d::new(-0.5, 0.5),
     Vec2d::new(-0.5, -0.5),
     Vec2d::new(0.5, -0.5),
-    Vec2d::new(0.5, 0.5),
 ];
 pub const MINIRECT_ENEMY_COLOR: Color = Color::RGBA(255, 0, 0, 255);
 
-pub const ROMBUS_ENEMY: [Vec2d; 5] = [
+pub const ROMBUS_ENEMY: [Vec2d; 4] = [
     Vec2d::new(2.0, 0.0),
     Vec2d::new(0.0, 1.0),
     Vec2d::new(-2.0, 0.0),
     Vec2d::new(0.0, -1.0),
-    Vec2d::new(2.0, 0.0),
 ];
 
-pub const MISSILE: [Vec2d; 6] = [
+pub const MISSILE: [Vec2d; 5] = [
     Vec2d::new(0.0, 0.0),
     Vec2d::new(-0.5, 0.5),
     Vec2d::new(-2.0, 0.5),
     Vec2d::new(-2.0, -0.5),
     Vec2d::new(-0.5, -0.5),
-    Vec2d::new(0.0, 0.0),
 ];
 
 pub const ROMBUS_ENEMY_COLOR: Color = Color::RGBA(0, 255, 255, 255);
 
-pub const WANDERER_ENEMY: [Vec2d; 13] = [
+pub const WANDERER_ENEMY: [Vec2d; 12] = [
     Vec2d::new(0.0, 0.0),
     Vec2d::new(0.0, 1.0),
     Vec2d::new(1.0, 1.0),
@@ -64,10 +59,9 @@ pub const WANDERER_ENEMY: [Vec2d; 13] = [
     Vec2d::new(0.0, 0.0),
     Vec2d::new(-1.0, 0.0),
     Vec2d::new(-1.0, 1.0),
-    Vec2d::new(0.0, 0.0),
 ];
 
-pub const BLACK_HOLE_ENEMY: [Vec2d; 9] = [
+pub const BLACK_HOLE_ENEMY: [Vec2d; 8] = [
     Vec2d::new(1.0, 0.0),
     Vec2d::new(0.7, 0.7),
     Vec2d::new(0.0, 1.0),
@@ -76,7 +70,6 @@ pub const BLACK_HOLE_ENEMY: [Vec2d; 9] = [
     Vec2d::new(-0.7, -0.7),
     Vec2d::new(0.0, -1.0),
     Vec2d::new(0.7, -0.7),
-    Vec2d::new(1.0, 0.0),
 ];
 
 pub const WANDERER_ENEMY_COLOR: Color = Color::RGBA(255, 0, 255, 255);

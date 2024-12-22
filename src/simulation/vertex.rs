@@ -1,3 +1,5 @@
+use std::vec;
+
 use crate::vecmath::Vec2d;
 
 pub struct Vertex {
@@ -16,28 +18,87 @@ impl Vertex {
     }
 
     pub fn mov(&mut self) {
-        self.position = self.position + self.direction;
-        self.direction = self.direction * 0.5;
-    }
+        if self.direction.isnan() {
+            panic!("dir is nan");
+        }
 
-    pub fn add_to_dir(&mut self, dir: Vec2d) {
-        self.direction = self.direction + dir;
-        if self.direction.len() > 10.0 {
-            self.direction = self.direction.normalized() * 10.0;
+        if self.direction.is_inf() {
+            panic!("dir is inf");
+        }
+
+        if self.direction.is_not_zero() {
+            self.position = self.position + self.direction;
+            //self.direction = self.direction * 0.5;
+        }
+
+        if self.direction.isnan() {
+            panic!("dir is nan");
+        }
+
+        if self.direction.is_inf() {
+            panic!("dir is inf");
         }
     }
 
-    pub fn set_dir_back(&mut self) {
+    pub fn add_to_dir(&mut self, dir: Vec2d) {
+        if dir.is_inf() {
+            panic!("dir is inf");
+        }
+
+        if dir.isnan() {
+            panic!("dir is nan");
+        }
+
+        if self.direction.isnan() {
+            panic!("dir is nan");
+        }
+
+        if dir.is_not_zero() {
+            self.direction = self.direction + dir;
+        }
+    }
+
+    pub fn set_dir_back(&mut self, multiplier: f32) {
+        // Any vertex should slowly gravitate back to the main position
+        // if no other forces move it:
+
+        if self.direction.isnan() {
+            panic!("dir is nan");
+        }
+
+        if self.direction.is_inf() {
+            panic!("dir is inf");
+        }
+
+        // direction to main pos:
         let dir = self.main_position - self.position;
-        if dir.len() > 0.01 {
-            let length = dir.len();
-            let mut mult = length / 5.0;
-            if mult > 1.0 {
-                mult = 1.0;
-            } else if mult < 0.0 {
-                mult = 0.0;
-            }
-            self.add_to_dir(dir.normalized() * mult * 5.0);
+        if dir.isnan() {
+            panic!("dir is nan");
+        }
+
+        if dir.is_inf() {
+            panic!("dir is inf");
+        }
+
+        if dir.is_not_zero() {
+            self.add_to_dir(dir * 0.15 * multiplier);
+
+            // decrease velocity -> the grid should lost 99.5% of
+            // its velocity per second, if no further force is added.
+            let _d = self.direction * 0.995 * multiplier;
+            self.direction = self.direction - _d;
+        } else {
+            // we are close to main pos, snap to it
+            self.direction = Vec2d::new(0.0, 0.0);
+            self.position = self.main_position;
+        }
+
+        if self.direction.isnan() {
+            panic!("dir is nan");
+        }
+
+        if self.direction.is_inf() {
+            panic!("dir is inf");
         }
     }
 

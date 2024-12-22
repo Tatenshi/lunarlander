@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use core::panic;
 use rand::Rng;
 use std::f32::consts::PI;
 
@@ -31,6 +32,9 @@ impl Vec2d {
     }
 
     pub fn len(&self) -> f32 {
+        if self.is_zero() {
+            return 0.0f32;
+        }
         return (self.x * self.x + self.y * self.y).sqrt();
     }
 
@@ -72,6 +76,18 @@ impl Vec2d {
     pub(crate) fn is_not_zero(&self) -> bool {
         return self.x != 0.0 || self.y != 0.0;
     }
+
+    pub(crate) fn is_zero(&self) -> bool {
+        return self.x.abs() < 0.00001 && self.y.abs() < 0.00001;
+    }
+
+    pub fn isnan(&self) -> bool {
+        return self.x.is_nan() || self.y.is_nan();
+    }
+
+    pub fn is_inf(&self) -> bool {
+        return self.x.is_infinite() || self.y.is_infinite();
+    }
 }
 
 impl std::ops::Add<Vec2d> for Vec2d {
@@ -100,6 +116,9 @@ impl std::ops::Mul<f32> for Vec2d {
     type Output = Vec2d;
 
     fn mul(self, rhs: f32) -> Self::Output {
+        if rhs.is_nan() || rhs.is_infinite() {
+            panic!("mul is nan");
+        }
         Vec2d {
             x: self.x * rhs,
             y: self.y * rhs,
@@ -111,6 +130,9 @@ impl std::ops::Div<f32> for Vec2d {
     type Output = Vec2d;
 
     fn div(self, rhs: f32) -> Self::Output {
+        if rhs.is_nan() || rhs.is_infinite() || rhs == 0.0f32 {
+            panic!("mul is nan");
+        }
         Vec2d {
             x: self.x / rhs,
             y: self.y / rhs,
