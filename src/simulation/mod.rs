@@ -519,6 +519,8 @@ impl World {
     }
 
     fn spawn_enemies(&mut self) {
+        const ENEMY_DISTRIBUTION: [f32; 5] = [0.2, 0.4, 0.8, 0.99, 1.0];
+
         if self.enemies.len() < 50 {
             let should_spawn = thread_rng().gen_ratio(1, 100);
 
@@ -528,7 +530,12 @@ impl World {
                 for _ in 0..num_to_spawn {
                     let pos = self.make_safe_enemy_position();
                     self.entities.with_new(|the_entity, entity_index| {
-                        let enemy_type = thread_rng().gen_range(0..EnemyType::Invalid as usize);
+                        //let enemy_type = thread_rng().gen_range(0..EnemyType::Invalid as usize);
+
+                        //select actual enemy type based on distribution
+                        let rnd = thread_rng().gen_range(0.0..1.0);
+                        let enemy_type = ENEMY_DISTRIBUTION.iter().position(|&x| x > rnd).unwrap();
+
                         let enemy;
                         match enemy_type {
                             0 => {
@@ -536,6 +543,7 @@ impl World {
                                     ty: EnemyType::Rombus,
                                     entity_id: entity_index,
                                     hull: &ROMBUS_ENEMY,
+                                    num_ticks: 0,
                                 }
                             }
                             1 => {
@@ -543,6 +551,7 @@ impl World {
                                     ty: EnemyType::Rect,
                                     entity_id: entity_index,
                                     hull: &RECT_ENEMY,
+                                    num_ticks: 0,
                                 }
                             }
                             2 => {
@@ -550,6 +559,7 @@ impl World {
                                     ty: EnemyType::Wanderer,
                                     entity_id: entity_index,
                                     hull: &RECT_ENEMY,
+                                    num_ticks: 0,
                                 }
                             }
                             3 => {
@@ -557,6 +567,7 @@ impl World {
                                     ty: EnemyType::SpawningRect,
                                     entity_id: entity_index,
                                     hull: &RECT_ENEMY,
+                                    num_ticks: 0,
                                 }
                             }
                             4 => {
@@ -565,6 +576,7 @@ impl World {
                                     ty: EnemyType::SpawningRect,
                                     entity_id: entity_index,
                                     hull: &MINIRECT_ENEMY,
+                                    num_ticks: 0,
                                 }
                             }
                             _ => {
@@ -572,6 +584,7 @@ impl World {
                                     ty: EnemyType::Wanderer,
                                     entity_id: entity_index,
                                     hull: &RECT_ENEMY,
+                                    num_ticks: 0,
                                 }
                             }
                         }
@@ -607,6 +620,8 @@ impl World {
         let mut swapped_missiles = ObjectStore::new();
         std::mem::swap(&mut self.missiles, &mut swapped_missiles);
 
+        let mut player_died = false;
+
         //for enemy in self.enemies.iter() {
         swapped_enemies.for_each_immutable(|enemy, _| {
             // create collidable hull for entity:
@@ -627,11 +642,19 @@ impl World {
                 } else {
                     self.game_state = State::Lost;
                 }
+
+                player_died = true;
             }
 
             // Check collision against missiles
             swapped_missiles.for_each_immutable(|missile, _| {
                 let missile_entity = self.entities.get_object(missile.entity_id);
+
+                // make sure each missile can only hit once!
+                if missiles_to_delete.contains(&missile.entity_id) {
+                    return;
+                }
+
                 let projectile_collision =
                     collision::hit_test(missile_entity.position(), &enemy_hull);
 
@@ -649,6 +672,11 @@ impl World {
                 }
             });
         });
+
+        if player_died {
+            // destroy all enemies:
+            swapped_enemies.for_each_immutable(|enemy, _| enemies_to_delete.push(enemy.entity_id));
+        }
 
         // swap back:
         std::mem::swap(&mut self.enemies, &mut swapped_enemies);
@@ -718,6 +746,7 @@ impl World {
                         entity_id: entity_index,
                         ty: EnemyType::MiniRect,
                         hull: &MINIRECT_ENEMY,
+                        num_ticks: 0,
                     };
                     self.enemies.insert_object(minirect);
                 });

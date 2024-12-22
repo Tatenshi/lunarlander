@@ -33,6 +33,7 @@ pub struct Enemy<'a> {
     pub entity_id: usize,
     pub ty: EnemyType,
     pub hull: &'a [Vec2d],
+    pub num_ticks: u32,
 }
 
 impl ObjectDefault for Enemy<'_> {
@@ -41,6 +42,7 @@ impl ObjectDefault for Enemy<'_> {
             entity_id: 0,
             ty: EnemyType::Invalid,
             hull: &[],
+            num_ticks: 0,
         }
     }
 }
@@ -58,13 +60,14 @@ impl Enemy<'_> {
     }
 
     pub fn tick(
-        &self,
+        &mut self,
         entities: &ObjectStore<Entity>,
         player_id: usize,
         missiles: &ObjectStore<Missile>,
     ) {
         let ty = self.ty;
         let playerpos = entities.get_object(player_id).position().clone();
+        self.num_ticks += 1;
 
         match ty {
             EnemyType::Rect => self.rect_tick(entities, playerpos, missiles),
@@ -134,12 +137,15 @@ impl Enemy<'_> {
         player_pos: Vec2d,
         missiles: &ObjectStore<Missile>,
     ) {
+        // for every 1000 sicks, minirects will get 5% faster:
+        let vel_factor = (self.num_ticks / 1000) as f32 * 0.15;
+
         let vel = match self.ty {
             EnemyType::Rect => 120f32,
             EnemyType::Rombus => todo!(),
             EnemyType::Wanderer => todo!(),
             EnemyType::SpawningRect => 100f32,
-            EnemyType::MiniRect => 250f32,
+            EnemyType::MiniRect => 250f32 * (1.0f32 + vel_factor),
             EnemyType::Invalid => todo!(),
         };
         let current_pos;
@@ -176,13 +182,20 @@ impl Enemy<'_> {
     fn wanderer_tick(&self, world: &ObjectStore<Entity>) {
         world.with(self.entity_id, |ent| {
             const MAX_VEL: f32 = 80f32;
-            let new_dir = Vec2d {
-                x: thread_rng().gen_range(-1.0..1.0) as f32,
-                y: thread_rng().gen_range(-1.0..1.0) as f32,
-            };
-            ent.set_direction(new_dir.normalized() * MAX_VEL);
-            ent.set_acceleration(ent.direction() * MAX_VEL);
-            ent.set_max_velocity(MAX_VEL);
+
+            //also, increas velocity by 20 % every 500 ticks
+            let vel_factor = 1.0f32 + (self.num_ticks / 500) as f32 * 0.2;
+
+            // the wanderer changes direction every 500 ticks: (use mod 1 to have it change direction right away at the first tick!)
+            if self.num_ticks % 500 == 1 {
+                let new_dir = Vec2d {
+                    x: thread_rng().gen_range(-1.0..1.0) as f32,
+                    y: thread_rng().gen_range(-1.0..1.0) as f32,
+                };
+                ent.set_direction(new_dir.normalized() * MAX_VEL * vel_factor);
+                ent.set_acceleration(ent.direction() * MAX_VEL * vel_factor);
+                ent.set_max_velocity(MAX_VEL * vel_factor);
+            }
         });
     }
 }
