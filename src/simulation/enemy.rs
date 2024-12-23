@@ -15,7 +15,7 @@ use crate::{
 use super::{
     entity::Entity,
     objectstore::{ObjectDefault, ObjectStore},
-    vertexgrid::VertexGrid,
+    vertexgrid::{CircularEffectType, VertexGrid},
     Missile,
 };
 
@@ -224,7 +224,13 @@ impl Enemy<'_> {
             falloff_range = 900f32;
         }
 
-        grid.add_circular_effect(my_pos, falloff_range, 0.25, 0.1);
+        grid.add_circular_effect(
+            my_pos,
+            falloff_range,
+            0.25,
+            0.1,
+            CircularEffectType::Implosion,
+        );
 
         world.with(self.entity_id, |ent| {
             ent.set_acceleration(Vec2d::new(0f32, 0f32));

@@ -38,6 +38,10 @@ impl Vec2d {
         return (self.x * self.x + self.y * self.y).sqrt();
     }
 
+    pub fn len_squared(&self) -> f32 {        
+        return self.x * self.x + self.y * self.y;
+    }
+
     pub fn normalized(&self) -> Vec2d {
         let x = self.clone();
         return x / x.len();

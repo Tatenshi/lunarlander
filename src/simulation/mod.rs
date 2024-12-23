@@ -6,6 +6,7 @@ use rand::{thread_rng, Rng};
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::Texture;
+use vertexgrid::CircularEffectType;
 
 use crate::graphics::{
     self, render_game_over, BLACK_HOLE_ENEMY, ENTITY_SCALE, MINIRECT_ENEMY, MISSILE, RECT_ENEMY,
@@ -749,8 +750,13 @@ impl World {
         self.sound.explode();
         self.kills_this_life += 1;
         enemies_to_delete.push(enemy.entity_id);
-        self.grid
-            .add_circular_effect(enemy_pos, 32.0, 1.8f32, 128.0f32);
+        self.grid.add_circular_effect(
+            enemy_pos,
+            32.0,
+            1.0f32,
+            250.0f32,
+            CircularEffectType::Explosion,
+        );
 
         if !missiles_to_delete.contains(&missile.entity_id) {
             missiles_to_delete.push(missile.entity_id);

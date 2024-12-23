@@ -28,7 +28,6 @@ impl Vertex {
 
         if self.direction.is_not_zero() {
             self.position = self.position + self.direction;
-            //self.direction = self.direction * 0.5;
         }
 
         if self.direction.isnan() {
@@ -86,6 +85,7 @@ impl Vertex {
             // decrease velocity -> the grid should lost 99.5% of
             // its velocity per second, if no further force is added.
             let _d = self.direction * 0.995 * multiplier;
+
             self.direction = self.direction - _d;
         } else {
             // we are close to main pos, snap to it

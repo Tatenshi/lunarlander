@@ -12,6 +12,11 @@ use super::{
     vertex::Vertex,
     GRID_DISTANCE, WORLD_SIZE,
 };
+#[derive(Debug, Clone, Copy)]
+pub enum CircularEffectType {
+    Explosion,
+    Implosion,
+}
 
 #[derive(Clone, Copy)]
 struct CircularEffect {
@@ -19,6 +24,7 @@ struct CircularEffect {
     radius: f32,
     time_to_live: f32,
     expansion_speed: f32,
+    effect_type: CircularEffectType,
 }
 
 #[derive(Clone, Copy)]
@@ -33,6 +39,7 @@ impl ObjectDefault for Effect {
             radius: 0.0,
             time_to_live: 0.0,
             expansion_speed: 0.0,
+            effect_type: CircularEffectType::Explosion,
         })
     }
 }
@@ -70,12 +77,14 @@ impl VertexGrid {
         radius: f32,
         time_to_live: f32,
         expansion_speed: f32,
+        effect_type: CircularEffectType,
     ) {
         self.effects.insert_object(Effect::Circular(CircularEffect {
             center,
             radius,
             time_to_live,
             expansion_speed,
+            effect_type,
         }));
     }
 
@@ -219,21 +228,23 @@ fn circle_effect_tick(
         // This is obviously not quite circular but rectangular. However in the final
         // effect that is not too noticeable
         for i in 0..=num_y_steps {
-            for j in 0..=num_x_steps {
-                let current_pos =
-                    start_pos + Vec2d::new(j as f32 * GRID_DISTANCE, i as f32 * GRID_DISTANCE);
+            let y = i as f32 * GRID_DISTANCE;
+            let mut current_x = 0.0f32;
+            for _ in 0..=num_x_steps {
+                let current_pos = start_pos + Vec2d::new(current_x, y);
+                current_x += GRID_DISTANCE as f32;
+                let vec_to_center = e.center - current_pos;
 
-                if (current_pos - e.center).len() > e.radius * 0.5 {
+                if vec_to_center.is_zero() {
+                    continue;
+                }
+                if (vec_to_center).len() > e.radius * 0.5 {
                     continue;
                 }
 
                 // Calculate force to apply:
                 // The force gets weaker as a function of the distance to the center
                 // The force gets weaker, as the effect's ttl gets closer to 0
-                let vec_to_center = e.center - current_pos;
-                if vec_to_center.is_zero() {
-                    continue;
-                }
 
                 let distance_to_center = vec_to_center.len();
                 let fragment_of_radius = distance_to_center / (e.radius * 0.5);
@@ -261,16 +272,15 @@ fn circle_effect_tick(
                 };
 
                 // Adding the radius makes the effect too strong, so we scale it down a bit
-                let output_force =
+                let mut output_force =
                     vec_to_center.normalized() * e.radius * 0.25 * force_strength * delta_t;
 
-                if output_force.isnan() {
-                    panic!("force is nan");
-                }
-
-                if output_force.is_inf() {
-                    panic!("force is inf");
-                }
+                match e.effect_type {
+                    CircularEffectType::Explosion => {
+                        output_force = output_force * -1.5;
+                    }
+                    CircularEffectType::Implosion => {}
+                };
 
                 forces_to_apply.push((output_force, current_pos));
             }

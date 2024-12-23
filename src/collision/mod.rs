@@ -2,6 +2,7 @@ use crate::vecmath::*;
 use geo::coord;
 use geo::Contains;
 use geo::LineString;
+use geo::Simplify;
 
 // fn is_on_segment(a: Vec2d, b: Vec2d, sample: Vec2d) -> bool {
 //     let total = (a - b).len();
