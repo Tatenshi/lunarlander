@@ -570,6 +570,7 @@ impl World {
                                     hull: &ROMBUS_ENEMY,
                                     num_ticks: 0,
                                     hitpoints: 1,
+                                    is_triggered: false,
                                 }
                             }
                             1 => {
@@ -579,6 +580,7 @@ impl World {
                                     hull: &RECT_ENEMY,
                                     num_ticks: 0,
                                     hitpoints: 1,
+                                    is_triggered: false,
                                 }
                             }
                             2 => {
@@ -588,6 +590,7 @@ impl World {
                                     hull: &RECT_ENEMY,
                                     num_ticks: 0,
                                     hitpoints: 1,
+                                    is_triggered: false,
                                 }
                             }
                             3 => {
@@ -597,6 +600,7 @@ impl World {
                                     hull: &RECT_ENEMY,
                                     num_ticks: 0,
                                     hitpoints: 1,
+                                    is_triggered: false,
                                 }
                             }
                             4 => {
@@ -607,6 +611,7 @@ impl World {
                                     hull: &MINIRECT_ENEMY,
                                     num_ticks: 0,
                                     hitpoints: 1,
+                                    is_triggered: false,
                                 }
                             }
                             5 => {
@@ -616,6 +621,7 @@ impl World {
                                     hull: &BLACK_HOLE_ENEMY,
                                     num_ticks: 0,
                                     hitpoints: 10,
+                                    is_triggered: false,
                                 }
                             }
                             _ => {
@@ -625,6 +631,7 @@ impl World {
                                     hull: &RECT_ENEMY,
                                     num_ticks: 0,
                                     hitpoints: 1,
+                                    is_triggered: false,
                                 }
                             }
                         }
@@ -797,6 +804,7 @@ impl World {
                         hull: &MINIRECT_ENEMY,
                         num_ticks: 0,
                         hitpoints: 1,
+                        is_triggered: false,
                     };
                     self.enemies.insert_object(minirect);
                 });

@@ -37,6 +37,7 @@ pub struct Enemy<'a> {
     pub hull: &'a [Vec2d],
     pub num_ticks: u32,
     pub hitpoints: u32,
+    pub is_triggered: bool,
 }
 
 impl ObjectDefault for Enemy<'_> {
@@ -47,9 +48,12 @@ impl ObjectDefault for Enemy<'_> {
             hull: &[],
             num_ticks: 0,
             hitpoints: 1,
+            is_triggered: false,
         }
     }
 }
+
+const ACTIVATION_RANGE: f32 = 800.0;
 
 impl Enemy<'_> {
     pub fn get_score(&self) -> u32 {
@@ -71,11 +75,21 @@ impl Enemy<'_> {
         missiles: &ObjectStore<Missile>,
         grid: &mut super::vertexgrid::VertexGrid,
     ) {
-        let ty = self.ty;
+        let enemty_type = self.ty;
         let playerpos = entities.get_object(player_id).position().clone();
+        let enemypos: Vec2d = entities.get_object(self.entity_id).position().clone();
         self.num_ticks += 1;
 
-        match ty {
+        let dist_to_player = (playerpos - enemypos).len();
+        if !self.is_triggered && (dist_to_player <= ACTIVATION_RANGE) {
+            self.is_triggered = true;
+        }
+        if !self.is_triggered {
+            //only move if enemy was in range of the player once
+            return;
+        }
+
+        match enemty_type {
             EnemyType::Rect => self.rect_tick(entities, playerpos, missiles),
             EnemyType::Rombus => self.rombus_tick(entities, playerpos),
             EnemyType::Wanderer => self.wanderer_tick(entities),
