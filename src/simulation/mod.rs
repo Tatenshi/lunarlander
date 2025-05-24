@@ -10,8 +10,8 @@ use sdl2::render::Texture;
 use vertexgrid::CircularEffectType;
 
 use crate::graphics::{
-    self, render_game_over, BLACK_HOLE_ENEMY, ENTITY_SCALE, MINIRECT_ENEMY, MISSILE, RECT_ENEMY,
-    ROMBUS_ENEMY, STARSHIP_COLOR,
+    self, render_game_over, BLACK_HOLE_ENEMY, CANNON_ENEMY, ENTITY_SCALE, MINIRECT_ENEMY, MISSILE,
+    RECT_ENEMY, ROMBUS_ENEMY, STARSHIP, STARSHIP_COLOR,
 };
 use crate::sound;
 use crate::vecmath::TransformationMatrix;
@@ -23,10 +23,12 @@ use crate::{
 use self::enemy::{Enemy, EnemyType};
 use self::entity::Entity;
 use self::explosion::Explosion;
+use self::missile::Missile;
 
 mod enemy;
 mod entity;
 mod explosion;
+mod missile;
 mod objectstore;
 mod obstacles;
 mod vertex;
@@ -75,17 +77,12 @@ pub struct Starship {
     shoot_cooldown_count: f32, // current cooldown value (sec)
 }
 
-#[derive(Clone, PartialEq, Default)]
-pub struct Missile {
-    entity_id: usize,
-    time_to_live: f32, // in seconds
-}
-
 impl ObjectDefault for Missile {
     fn default() -> Self {
         Missile {
             entity_id: 0,
             time_to_live: 5.0f32,
+            hostile: false,
         }
     }
 }
@@ -141,19 +138,20 @@ pub struct World {
 
 const WORLD_SIZE: Vec2d = Vec2d {
     x: 1.5 * 800.0,
-    y: 1.5 * 3000.0,
+    y: 1.5 * 600.0,
 };
 
-const GRID_DISTANCE: f32 = 20.0;
+const SIDE_BORDER_LEFT: f32 = 0.0;
 
-impl Missile {
-    pub fn new(id: usize) -> Self {
-        Self {
-            entity_id: id,
-            time_to_live: 5.0f32,
-        }
-    }
-}
+const SIDE_BORDER_RIGHT: f32 = WORLD_SIZE.x;
+
+const ENTITY_TOP_BORDER: f32 = -WORLD_SIZE.y;
+
+const PLAYER_TOP_BORDER: f32 = 0.0;
+
+const BOTTOM_BORDER: f32 = WORLD_SIZE.y;
+
+const GRID_DISTANCE: f32 = 20.0;
 
 impl World {
     pub fn new(window_width: u32, window_height: u32) -> Self {
@@ -212,15 +210,9 @@ impl World {
     pub fn create_missile(&mut self, pos: Vec2d, direction: Vec2d) {
         let id = self.entities.create_object();
         self.entities.with(id, |entity| {
-            entity.set_position(pos);
-            entity.set_direction(direction);
-            entity.set_acceleration(direction * MAX_ACCELERATION);
-            entity.set_max_velocity(VELOCITY_MISSILE);
-            entity.set_border_behavior(BorderBehavior::Dismiss);
-            entity.set_angle(direction.angle_360());
+            self.missiles
+                .insert_object(Missile::new(id, entity, pos, direction, false));
         });
-
-        self.missiles.insert_object(Missile::new(id));
     }
 
     fn garbage_collect_entities(&mut self, ids_to_remove: &Vec<usize>) {
@@ -426,13 +418,12 @@ impl World {
             let entity_trans = entity.get_screenspace_transform(screen_space_transform) * scale;
             let vecs = entity_trans.transform_many(&MISSILE.to_vec());
             let texture = textures.get("neon").unwrap();
-            let _ = draw::neon_draw_lines(
-                canvas,
-                &vecs,
-                Color::RGBA(255, 255, 255, 255),
-                true,
-                texture,
-            );
+            let color = if missile.hostile {
+                Color::RGBA(255, 0, 0, 255)
+            } else {
+                Color::RGBA(255, 255, 255, 255)
+            };
+            let _ = draw::neon_draw_lines(canvas, &vecs, color, true, texture);
         });
     }
 
@@ -513,7 +504,7 @@ impl World {
         loop {
             let pos = Vec2d {
                 x: thread_rng().gen_range(0..(WORLD_SIZE.x as usize)) as f32,
-                y: thread_rng().gen_range(0..(WORLD_SIZE.y as usize)) as f32,
+                y: -(thread_rng().gen_range(0..(WORLD_SIZE.y as usize)) as f32),
             };
             let id = self.starship.entity_id;
             let player_pos = self.entities.get_object(id).position();
@@ -562,8 +553,8 @@ impl World {
 
     fn spawn_enemies(&mut self) {
         //return;
-        //const ENEMY_DISTRIBUTION: [f32; 6] = [0.2, 0.4, 0.8, 0.9, 0.0, 1.0];
-        const ENEMY_DISTRIBUTION: [f32; 6] = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        const ENEMY_DISTRIBUTION: [f32; 7] = [0.2, 0.4, 0.6, 0.8, 0.9, 0.0, 1.0];
+        //const ENEMY_DISTRIBUTION: [f32; 7] = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
         let rn: f64 = thread_rng().gen_range(0.0..=1.0);
 
@@ -612,6 +603,16 @@ impl World {
                             }
                             2 => {
                                 enemy = Enemy {
+                                    ty: EnemyType::Cannon,
+                                    entity_id: entity_index,
+                                    hull: &CANNON_ENEMY,
+                                    num_ticks: 0,
+                                    hitpoints: 1,
+                                    is_triggered: false,
+                                }
+                            }
+                            3 => {
+                                enemy = Enemy {
                                     ty: EnemyType::Wanderer,
                                     entity_id: entity_index,
                                     hull: &RECT_ENEMY,
@@ -620,7 +621,7 @@ impl World {
                                     is_triggered: false,
                                 }
                             }
-                            3 => {
+                            4 => {
                                 enemy = Enemy {
                                     ty: EnemyType::SpawningRect,
                                     entity_id: entity_index,
@@ -630,7 +631,7 @@ impl World {
                                     is_triggered: false,
                                 }
                             }
-                            4 => {
+                            5 => {
                                 // We don't spawn minirects directly
                                 enemy = Enemy {
                                     ty: EnemyType::SpawningRect,
@@ -641,7 +642,7 @@ impl World {
                                     is_triggered: false,
                                 }
                             }
-                            5 => {
+                            6 => {
                                 enemy = Enemy {
                                     ty: EnemyType::BlackHole,
                                     entity_id: entity_index,
@@ -680,6 +681,8 @@ impl World {
         let id = self.starship.entity_id;
         let player_entity = self.entities.get_object(id);
         let player_position = player_entity.position();
+        let player_transform = make_entity_transform(player_entity);
+        let player_hull = player_transform.transform_many_slice(&STARSHIP);
 
         let mut enemies_to_delete = Vec::<usize>::new();
         let mut missiles_to_delete = Vec::<usize>::new();
@@ -696,31 +699,36 @@ impl World {
 
         let mut player_died = false;
 
+        swapped_missiles.for_each_immutable(|missile, _| {
+            if !missile.hostile || player_died {
+                return;
+            }
+
+            let missile_entity = self.entities.get_object(missile.entity_id);
+
+            player_died = collision::hit_test(missile_entity.position(), &player_hull);
+        });
+
         swapped_enemies.for_each(|enemy, _| {
+            if player_died {
+                return;
+            }
             // create collidable hull for entity:
             let enemy_ent = self.entities.get_object(enemy.entity_id);
             let enemy_pos = enemy_ent.position();
-            let hull_transform = make_entity_transform(enemy_ent);
-            let enemy_hull = hull_transform.transform_many_slice(enemy.hull);
+            let enemy_transform = make_entity_transform(enemy_ent);
+            let enemy_hull = enemy_transform.transform_many_slice(enemy.hull);
 
-            let collision = collision::hit_test(player_position, &enemy_hull);
-            if collision {
-                self.sound.die();
-                // Ideally, make a huge explosion.
-                if self.lifes > 0 && self.game_state == State::Running {
-                    self.lifes -= 1;
-                    self.kills_this_life = 0;
-                    self.multiplier = 1.0;
-                    self.game_state = State::WaitingForRespawn(4.0);
-                } else {
-                    self.game_state = State::Lost;
-                }
-
-                player_died = true;
+            player_died = collision::hit_test(player_position, &enemy_hull);
+            if player_died {
+                return;
             }
 
             // Check collision against missiles
             swapped_missiles.for_each_immutable(|missile, _| {
+                if missile.hostile {
+                    return;
+                }
                 let missile_entity = self.entities.get_object(missile.entity_id);
 
                 // make sure each missile can only hit once!
@@ -752,6 +760,16 @@ impl World {
         });
 
         if player_died {
+            self.sound.die();
+            // Ideally, make a huge explosion.
+            if self.lifes > 0 && self.game_state == State::Running {
+                self.lifes -= 1;
+                self.kills_this_life = 0;
+                self.multiplier = 1.0;
+                self.game_state = State::WaitingForRespawn(4.0);
+            } else {
+                self.game_state = State::Lost;
+            }
             // destroy all enemies:
             swapped_enemies.for_each_immutable(|enemy, _| enemies_to_delete.push(enemy.entity_id));
         }

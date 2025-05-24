@@ -72,6 +72,17 @@ pub const BLACK_HOLE_ENEMY: [Vec2d; 8] = [
     Vec2d::new(0.7, -0.7),
 ];
 
+pub const CANNON_ENEMY: [Vec2d; 8] = [
+    Vec2d::new(2.0, -1.0),
+    Vec2d::new(2.0, 0.0),
+    Vec2d::new(0.0, 0.0),
+    Vec2d::new(0.0, 1.0),
+    Vec2d::new(-1.0, 1.0),
+    Vec2d::new(-1.0, 0.0),
+    Vec2d::new(-2.0, 0.0),
+    Vec2d::new(-2.0, -1.0),
+];
+
 pub const WANDERER_ENEMY_COLOR: Color = Color::RGBA(255, 0, 255, 255);
 
 pub fn render_game_over(
