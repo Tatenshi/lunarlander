@@ -2,6 +2,8 @@ use crate::vecmath::{self, TransformationMatrix, Vec2d};
 
 use super::{objectstore::ObjectDefault, BorderBehavior, WORLD_SIZE};
 
+const SCROLL_GRAVITY: Vec2d = Vec2d { x: 0.0, y: 100.0 };
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Entity {
     position: Vec2d,
@@ -120,7 +122,7 @@ impl Entity {
             }
             // update direction by applying acceleration:
             let accel_fragment = self.acceleration().clone() * (sim_time_in_seconds);
-            let gravity_fragment = self.gravity.clone(); // * (sim_time_in_seconds);
+            let gravity_fragment = self.gravity.clone() + SCROLL_GRAVITY; // * (sim_time_in_seconds);
             self.set_direction(self.direction() + accel_fragment + gravity_fragment);
 
             self.set_direction(if self.direction().len() > self.max_velocity() {
