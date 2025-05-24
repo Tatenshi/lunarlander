@@ -366,10 +366,10 @@ impl World {
         self.entities
             .for_each(|e: &mut Entity, _: usize| e.physics_tick(sim_time_in_seconds, num_ticks));
 
-        self.entities
-            .with(self.starship.entity_id, |e: &mut Entity| {
-                self.grid.intersect_grid(e.position());
-            });
+        // self.entities
+        //     .with(self.starship.entity_id, |e: &mut Entity| {
+        //         self.grid.intersect_grid(e.position());
+        //     });
 
         self.missile_tick(time_in_ms);
         self.dismiss_dead_missiles();
@@ -521,8 +521,12 @@ impl World {
 
     fn enemy_tick(&mut self) {
         // check if we have enough enemies:
+<<<<<<< HEAD
         self.spawn_enemies();
         self.spawn_obstacles();
+=======
+        //self.spawn_enemies();
+>>>>>>> a7390bc (add grid movement temporaray)
 
         self.enemies.for_each(|enemy, _| {
             enemy.tick(
