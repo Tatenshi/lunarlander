@@ -138,7 +138,7 @@ pub struct World {
 
 const WORLD_SIZE: Vec2d = Vec2d {
     x: 1.5 * 800.0,
-    y: 1.5 * 600.0,
+    y: 1.5 * 3000.0,
 };
 
 const GRID_DISTANCE: f32 = 20.0;
@@ -163,10 +163,14 @@ impl World {
         };
 
         let store: ObjectStore<Entity> = ObjectStore::<Entity>::new();
-        store.with_new(|the_entity, entity_index| {
-            the_entity.set_position(WORLD_SIZE / 2.0);
-            the_entity.set_max_velocity(VELOCITY_SPACESHIP);
-            the_entity.set_border_behavior(BorderBehavior::BounceSlowdown);
+        store.with_new(|player_entity, entity_index| {
+            let start_position = Vec2d {
+                x: WORLD_SIZE.x / 2.0,
+                y: WORLD_SIZE.y - 100.0,
+            };
+            player_entity.set_position(start_position);
+            player_entity.set_max_velocity(VELOCITY_SPACESHIP);
+            player_entity.set_border_behavior(BorderBehavior::BounceSlowdown);
             lander.entity_id = entity_index;
         });
 
@@ -531,8 +535,8 @@ impl World {
 
     fn spawn_enemies(&mut self) {
         //return;
-        const ENEMY_DISTRIBUTION: [f32; 6] = [0.2, 0.4, 0.8, 0.9, 0.0, 1.0];
-        //const ENEMY_DISTRIBUTION: [f32; 6] = [0.0, 0.0, 0.0, 0.0, 0.0, 1.0];
+        //const ENEMY_DISTRIBUTION: [f32; 6] = [0.2, 0.4, 0.8, 0.9, 0.0, 1.0];
+        const ENEMY_DISTRIBUTION: [f32; 6] = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
         let rn = thread_rng().gen_range(0.0..=1.0);
 
