@@ -6,8 +6,8 @@ use sdl2::render::Texture;
 use crate::{
     draw,
     graphics::{
-        self, BLACK_HOLE_ENEMY, MINIRECT_ENEMY, MINIRECT_ENEMY_COLOR, RECT_ENEMY, RECT_ENEMY_COLOR,
-        ROMBUS_ENEMY, ROMBUS_ENEMY_COLOR, WANDERER_ENEMY, WANDERER_ENEMY_COLOR,
+        self, BLACK_HOLE_ENEMY, CANNON_ENEMY, MINIRECT_ENEMY, MINIRECT_ENEMY_COLOR, RECT_ENEMY,
+        RECT_ENEMY_COLOR, ROMBUS_ENEMY, ROMBUS_ENEMY_COLOR, WANDERER_ENEMY, WANDERER_ENEMY_COLOR,
     },
     vecmath::{self, TransformationMatrix, Vec2d},
 };
@@ -27,6 +27,7 @@ pub enum EnemyType {
     SpawningRect,
     MiniRect,
     BlackHole,
+    Cannon,
     Invalid,
 }
 
@@ -65,6 +66,7 @@ impl Enemy<'_> {
             EnemyType::SpawningRect => 200,
             EnemyType::MiniRect => 50,
             EnemyType::BlackHole => 500,
+            EnemyType::Cannon => 200,
         };
     }
 
@@ -96,6 +98,7 @@ impl Enemy<'_> {
             EnemyType::SpawningRect => self.rect_tick(entities, playerpos, missiles),
             EnemyType::MiniRect => self.rect_tick(entities, playerpos, missiles),
             EnemyType::BlackHole => self.black_hole_tick(entities, grid),
+            EnemyType::Cannon => self.cannon_tick(entities, missiles),
             EnemyType::Invalid => todo!(),
         }
     }
@@ -132,6 +135,10 @@ impl Enemy<'_> {
             }
             EnemyType::BlackHole => {
                 items = &BLACK_HOLE_ENEMY;
+                col = MINIRECT_ENEMY_COLOR;
+            }
+            EnemyType::Cannon => {
+                items = &CANNON_ENEMY;
                 col = MINIRECT_ENEMY_COLOR;
             }
             EnemyType::Invalid => todo!(),
@@ -172,6 +179,7 @@ impl Enemy<'_> {
             EnemyType::SpawningRect => 100f32,
             EnemyType::MiniRect => 250f32 * (1.0f32 + vel_factor),
             EnemyType::BlackHole => todo!(),
+            EnemyType::Cannon => todo!(),
             EnemyType::Invalid => todo!(),
         };
         let current_pos;
@@ -266,6 +274,30 @@ impl Enemy<'_> {
 
             let gravity = ent.gravity();
             ent.set_gravity(gravity + ((dir * pull_factor) * dist_falloff));
+        });
+    }
+
+    fn cannon_tick(&self, entities: &ObjectStore<Entity>, missiles: &ObjectStore<Missile>) {
+        const SHOOT_COOLDOWN: u32 = 15;
+        if self.num_ticks % SHOOT_COOLDOWN != 0 {
+            return;
+        }
+
+        let id = entities.create_object();
+        let cannon_pos = entities.get_object(self.entity_id).position();
+        let x_missile_direction = thread_rng().gen_range(-1.0..1.0);
+        let y_missile_direction = thread_rng().gen_range(-1.0..1.0);
+        entities.with(id, |entity| {
+            missiles.insert_object(Missile::new(
+                id,
+                entity,
+                cannon_pos,
+                Vec2d {
+                    x: x_missile_direction,
+                    y: y_missile_direction,
+                },
+                true,
+            ));
         });
     }
 }
