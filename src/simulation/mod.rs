@@ -612,6 +612,7 @@ impl World {
                                     hull: &CANNON_ENEMY,
                                     num_ticks: 0,
                                     hitpoints: 1,
+                                    is_triggered: false,
                                 }
                             }
                             _ => {
