@@ -538,11 +538,13 @@ impl World {
         //const ENEMY_DISTRIBUTION: [f32; 6] = [0.2, 0.4, 0.8, 0.9, 0.0, 1.0];
         const ENEMY_DISTRIBUTION: [f32; 6] = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
-        if self.enemies.len() < 1 {
+        let rn = thread_rng().gen_range(0.0..=1.0);
+
+        if self.enemies.len() < 1 || (1.0 / self.enemies.len() as f64) > rn {
             let should_spawn = thread_rng().gen_ratio(1, 100);
 
             if should_spawn {
-                let num_to_spawn = thread_rng().gen_range(2..10);
+                let num_to_spawn = thread_rng().gen_range(1..5);
                 //let num_to_spawn = 1;
 
                 for _ in 0..num_to_spawn {
