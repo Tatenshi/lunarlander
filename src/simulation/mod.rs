@@ -664,6 +664,7 @@ impl World {
                             }
                         }
 
+                        the_entity.set_max_velocity(100.0);
                         the_entity.set_position(pos);
                         the_entity.set_border_behavior(BorderBehavior::Bounce);
                         self.enemies.insert_object(enemy);
