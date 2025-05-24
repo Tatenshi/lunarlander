@@ -141,6 +141,16 @@ const WORLD_SIZE: Vec2d = Vec2d {
     y: 1.5 * 600.0,
 };
 
+const SIDE_BORDER_LEFT: f32 = 0.0;
+
+const SIDE_BORDER_RIGHT: f32 = WORLD_SIZE.x;
+
+const ENTITY_TOP_BORDER: f32 = -WORLD_SIZE.y;
+
+const PLAYER_TOP_BORDER: f32 = 0.0;
+
+const BOTTOM_BORDER: f32 = WORLD_SIZE.y;
+
 const GRID_DISTANCE: f32 = 20.0;
 
 impl Missile {

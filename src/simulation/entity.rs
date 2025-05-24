@@ -1,6 +1,9 @@
 use crate::vecmath::{self, TransformationMatrix, Vec2d};
 
-use super::{objectstore::ObjectDefault, BorderBehavior, WORLD_SIZE};
+use super::{
+    objectstore::ObjectDefault, BorderBehavior, BOTTOM_BORDER, ENTITY_TOP_BORDER,
+    PLAYER_TOP_BORDER, SIDE_BORDER_LEFT, SIDE_BORDER_RIGHT, WORLD_SIZE,
+};
 
 const SCROLL_GRAVITY: Vec2d = Vec2d { x: 0.0, y: 100.0 };
 
@@ -131,13 +134,7 @@ impl Entity {
                 self.direction()
             });
             let mut new_pos = self.position() + self.direction().clone() * (sim_time_in_seconds);
-            if self.position().y > 0.0
-                && self.position().y < WORLD_SIZE.y
-                && (new_pos.x < 0.0
-                    || new_pos.y < 0.0
-                    || new_pos.x > WORLD_SIZE.x
-                    || new_pos.y > WORLD_SIZE.y)
-            {
+            if self.would_crosses_border(new_pos) {
                 match self.border_behavior() {
                     BorderBehavior::Dismiss => {
                         // TODO: destroy missile/entity
@@ -159,5 +156,30 @@ impl Entity {
             self.gravity = Vec2d::default();
             self.set_position(new_pos);
         }
+    }
+
+    fn would_crosses_border(&mut self, new_pos: Vec2d) -> bool {
+        return self.would_move_outside_bottom_border(new_pos)
+            || self.would_move_outside_side_border(new_pos)
+            || self.would_move_outside_top_entity_border(new_pos)
+            || self.would_move_outside_top_player_border(new_pos);
+    }
+
+    fn would_move_outside_side_border(&mut self, new_pos: Vec2d) -> bool {
+        return self.position().x > SIDE_BORDER_LEFT
+            && self.position().x < SIDE_BORDER_RIGHT
+            && (new_pos.x <= SIDE_BORDER_LEFT || new_pos.x >= SIDE_BORDER_RIGHT);
+    }
+
+    fn would_move_outside_top_entity_border(&mut self, new_pos: Vec2d) -> bool {
+        return self.position().y > ENTITY_TOP_BORDER && new_pos.y <= ENTITY_TOP_BORDER;
+    }
+
+    fn would_move_outside_top_player_border(&mut self, new_pos: Vec2d) -> bool {
+        return self.position().y > PLAYER_TOP_BORDER && new_pos.y <= PLAYER_TOP_BORDER;
+    }
+
+    fn would_move_outside_bottom_border(&mut self, new_pos: Vec2d) -> bool {
+        return self.position().y < BOTTOM_BORDER && new_pos.y >= BOTTOM_BORDER;
     }
 }
