@@ -1,6 +1,7 @@
 use core::f32;
 use std::collections::HashMap;
 use std::f32::consts::PI;
+use std::io::empty;
 
 use rand::{thread_rng, Rng};
 use sdl2::pixels::Color;
@@ -337,6 +338,7 @@ impl World {
                         e.set_direction(Vec2d::default());
                         e.set_acceleration(Vec2d::default());
                         e.set_angle(0.0);
+                        e.revive();
                     });
                     self.reset_control();
                     State::Running
@@ -654,6 +656,7 @@ impl World {
         let id = self.starship.entity_id;
         let player_entity = self.entities.get_object(id);
         let player_position = player_entity.position();
+        let mut player_died = !player_entity.is_alive().clone();
         let player_transform = make_entity_transform(player_entity);
         let player_hull = player_transform.transform_many_slice(&STARSHIP);
 
@@ -670,8 +673,6 @@ impl World {
         let mut swapped_missiles = ObjectStore::new();
         std::mem::swap(&mut self.missiles, &mut swapped_missiles);
 
-        let mut player_died = false;
-
         swapped_missiles.for_each_immutable(|missile, _| {
             if !missile.hostile || player_died {
                 return;
@@ -686,8 +687,12 @@ impl World {
             if player_died {
                 return;
             }
+
             // create collidable hull for entity:
             let enemy_ent = self.entities.get_object(enemy.entity_id);
+            if (!enemy_ent.is_alive()) {
+                enemies_to_delete.push(enemy.entity_id);
+            }
             let enemy_pos = enemy_ent.position();
             let enemy_transform = make_entity_transform(enemy_ent);
             let enemy_hull = enemy_transform.transform_many_slice(enemy.hull);
