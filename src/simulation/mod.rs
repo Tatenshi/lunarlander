@@ -138,7 +138,7 @@ pub struct World {
 
 const WORLD_SIZE: Vec2d = Vec2d {
     x: 1.5 * 800.0,
-    y: 1.5 * 3000.0,
+    y: 1.5 * 600.0,
 };
 
 const GRID_DISTANCE: f32 = 20.0;
@@ -509,7 +509,7 @@ impl World {
         loop {
             let pos = Vec2d {
                 x: thread_rng().gen_range(0..(WORLD_SIZE.x as usize)) as f32,
-                y: thread_rng().gen_range(0..(WORLD_SIZE.y as usize)) as f32,
+                y: -(thread_rng().gen_range(0..(WORLD_SIZE.y as usize)) as f32),
             };
             let id = self.starship.entity_id;
             let player_pos = self.entities.get_object(id).position();
@@ -535,8 +535,8 @@ impl World {
 
     fn spawn_enemies(&mut self) {
         //return;
-        //const ENEMY_DISTRIBUTION: [f32; 6] = [0.2, 0.4, 0.8, 0.9, 0.0, 1.0];
-        const ENEMY_DISTRIBUTION: [f32; 6] = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        const ENEMY_DISTRIBUTION: [f32; 6] = [0.2, 0.4, 0.8, 0.9, 0.0, 1.0];
+        //const ENEMY_DISTRIBUTION: [f32; 6] = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
         let rn = thread_rng().gen_range(0.0..=1.0);
 

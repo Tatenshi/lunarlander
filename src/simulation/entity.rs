@@ -131,11 +131,12 @@ impl Entity {
                 self.direction()
             });
             let mut new_pos = self.position() + self.direction().clone() * (sim_time_in_seconds);
-
-            if new_pos.x < 0.0
-                || new_pos.y < 0.0
-                || new_pos.x > WORLD_SIZE.x
-                || new_pos.y > WORLD_SIZE.y
+            if self.position().y > 0.0
+                && self.position().y < WORLD_SIZE.y
+                && (new_pos.x < 0.0
+                    || new_pos.y < 0.0
+                    || new_pos.x > WORLD_SIZE.x
+                    || new_pos.y > WORLD_SIZE.y)
             {
                 match self.border_behavior() {
                     BorderBehavior::Dismiss => {
