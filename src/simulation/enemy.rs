@@ -278,7 +278,7 @@ impl Enemy<'_> {
     }
 
     fn cannon_tick(&self, entities: &ObjectStore<Entity>, missiles: &ObjectStore<Missile>) {
-        const SHOOT_COOLDOWN: u32 = 15;
+        const SHOOT_COOLDOWN: u32 = 5;
         if self.num_ticks % SHOOT_COOLDOWN != 0 {
             return;
         }
@@ -295,7 +295,7 @@ impl Enemy<'_> {
                 Vec2d {
                     x: x_missile_direction,
                     y: y_missile_direction,
-                },
+                } * 40.0,
                 true,
             ));
         });

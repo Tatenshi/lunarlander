@@ -576,6 +576,16 @@ impl World {
                             }
                             2 => {
                                 enemy = Enemy {
+                                    ty: EnemyType::Cannon,
+                                    entity_id: entity_index,
+                                    hull: &CANNON_ENEMY,
+                                    num_ticks: 0,
+                                    hitpoints: 1,
+                                    is_triggered: false,
+                                }
+                            }
+                            3 => {
+                                enemy = Enemy {
                                     ty: EnemyType::Wanderer,
                                     entity_id: entity_index,
                                     hull: &RECT_ENEMY,
@@ -584,7 +594,7 @@ impl World {
                                     is_triggered: false,
                                 }
                             }
-                            3 => {
+                            4 => {
                                 enemy = Enemy {
                                     ty: EnemyType::SpawningRect,
                                     entity_id: entity_index,
@@ -594,7 +604,7 @@ impl World {
                                     is_triggered: false,
                                 }
                             }
-                            4 => {
+                            5 => {
                                 // We don't spawn minirects directly
                                 enemy = Enemy {
                                     ty: EnemyType::SpawningRect,
@@ -605,23 +615,13 @@ impl World {
                                     is_triggered: false,
                                 }
                             }
-                            5 => {
+                            6 => {
                                 enemy = Enemy {
                                     ty: EnemyType::BlackHole,
                                     entity_id: entity_index,
                                     hull: &BLACK_HOLE_ENEMY,
                                     num_ticks: 0,
                                     hitpoints: 10,
-                                    is_triggered: false,
-                                }
-                            }
-                            6 => {
-                                enemy = Enemy {
-                                    ty: EnemyType::Cannon,
-                                    entity_id: entity_index,
-                                    hull: &CANNON_ENEMY,
-                                    num_ticks: 0,
-                                    hitpoints: 1,
                                     is_triggered: false,
                                 }
                             }
