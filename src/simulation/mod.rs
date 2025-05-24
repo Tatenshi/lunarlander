@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::f32::consts::PI;
 use std::io::empty;
 
+use obstacles::Obstacle;
 use rand::{thread_rng, Rng};
 use sdl2::pixels::Color;
 use sdl2::rect::{Point, Rect};
@@ -30,6 +31,7 @@ mod entity;
 mod explosion;
 mod missile;
 mod objectstore;
+mod obstacles;
 mod vertex;
 mod vertexgrid;
 
@@ -115,6 +117,7 @@ pub struct World {
     missiles: ObjectStore<Missile>,
     grid: VertexGrid,
     enemies: ObjectStore<Enemy<'static>>,
+    obstacles: ObjectStore<Obstacle<'static>>,
     texts: Vec<FloatingText>,
     explosions: Vec<Explosion>,
     starship: Starship,
@@ -178,6 +181,7 @@ impl World {
             entities: store,
             starship: lander,
             enemies: ObjectStore::new(),
+            obstacles: ObjectStore::new(),
             texts: Vec::new(),
             explosions: Vec::new(),
             hud: hud::Hud::new(),
@@ -515,6 +519,7 @@ impl World {
     fn enemy_tick(&mut self) {
         // check if we have enough enemies:
         self.spawn_enemies();
+        self.spawn_obstacles();
 
         self.enemies.for_each(|enemy, _| {
             enemy.tick(
@@ -525,13 +530,36 @@ impl World {
             );
         });
     }
+    fn spawn_obstacles(&mut self) {
+        let max_obstacles: usize = 3;
+        //limit amount of obstacles
+        if self.obstacles.len() >= max_obstacles {
+            return;
+        }
+
+        let pos = self.make_safe_enemy_position();
+
+        self.entities.with_new(|new_obstacle, entity_index| {
+            let obstacle: Obstacle = Obstacle {
+                entity_id: (entity_index),
+                obstacle_type: (obstacles::ObstacleType::Island),
+                hull: (&BLACK_HOLE_ENEMY),
+            };
+
+            new_obstacle.set_max_velocity(100.0);
+            new_obstacle.set_position(pos);
+            new_obstacle.set_border_behavior(BorderBehavior::Bounce);
+
+            self.obstacles.insert_object(obstacle);
+        });
+    }
 
     fn spawn_enemies(&mut self) {
         //return;
         const ENEMY_DISTRIBUTION: [f32; 7] = [0.2, 0.4, 0.6, 0.8, 0.9, 0.0, 1.0];
         //const ENEMY_DISTRIBUTION: [f32; 7] = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
-        let rn = thread_rng().gen_range(0.0..=1.0);
+        let rn: f64 = thread_rng().gen_range(0.0..=1.0);
 
         if self.enemies.len() < 1 || (1.0 / self.enemies.len() as f64) > rn {
             let should_spawn = thread_rng().gen_ratio(1, 100);
@@ -546,7 +574,7 @@ impl World {
                         //let enemy_type = thread_rng().gen_range(0..EnemyType::Invalid as usize);
 
                         //select actual enemy type based on distribution
-                        let rnd = thread_rng().gen_range(0.0..=1.0);
+                        let rnd: f32 = thread_rng().gen_range(0.0..=1.0);
                         let enemy_type =
                             if let Some(index) = ENEMY_DISTRIBUTION.iter().position(|&x| rnd < x) {
                                 index
@@ -578,6 +606,16 @@ impl World {
                             }
                             2 => {
                                 enemy = Enemy {
+                                    ty: EnemyType::Cannon,
+                                    entity_id: entity_index,
+                                    hull: &CANNON_ENEMY,
+                                    num_ticks: 0,
+                                    hitpoints: 1,
+                                    is_triggered: false,
+                                }
+                            }
+                            3 => {
+                                enemy = Enemy {
                                     ty: EnemyType::Wanderer,
                                     entity_id: entity_index,
                                     hull: &RECT_ENEMY,
@@ -586,7 +624,7 @@ impl World {
                                     is_triggered: false,
                                 }
                             }
-                            3 => {
+                            4 => {
                                 enemy = Enemy {
                                     ty: EnemyType::SpawningRect,
                                     entity_id: entity_index,
@@ -596,7 +634,7 @@ impl World {
                                     is_triggered: false,
                                 }
                             }
-                            4 => {
+                            5 => {
                                 // We don't spawn minirects directly
                                 enemy = Enemy {
                                     ty: EnemyType::SpawningRect,
@@ -607,23 +645,13 @@ impl World {
                                     is_triggered: false,
                                 }
                             }
-                            5 => {
+                            6 => {
                                 enemy = Enemy {
                                     ty: EnemyType::BlackHole,
                                     entity_id: entity_index,
                                     hull: &BLACK_HOLE_ENEMY,
                                     num_ticks: 0,
                                     hitpoints: 10,
-                                    is_triggered: false,
-                                }
-                            }
-                            6 => {
-                                enemy = Enemy {
-                                    ty: EnemyType::Cannon,
-                                    entity_id: entity_index,
-                                    hull: &CANNON_ENEMY,
-                                    num_ticks: 0,
-                                    hitpoints: 1,
                                     is_triggered: false,
                                 }
                             }
@@ -639,6 +667,7 @@ impl World {
                             }
                         }
 
+                        the_entity.set_max_velocity(100.0);
                         the_entity.set_position(pos);
                         the_entity.set_border_behavior(BorderBehavior::Bounce);
                         self.enemies.insert_object(enemy);
@@ -911,6 +940,10 @@ impl World {
         self.enemies.for_each(|enemy, _| {
             let entity = self.entities.get_object(enemy.entity_id);
             enemy.render(canvas, screen_space_transform, textures, &entity);
+        });
+        self.obstacles.for_each(|obstacles, _| {
+            let entity = self.entities.get_object(obstacles.entity_id);
+            obstacles.render(canvas, screen_space_transform, textures, &entity);
         });
     }
 

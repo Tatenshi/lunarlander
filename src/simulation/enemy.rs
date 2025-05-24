@@ -257,7 +257,6 @@ impl Enemy<'_> {
         world.with(self.entity_id, |ent| {
             ent.set_acceleration(Vec2d::new(0f32, 0f32));
             ent.set_direction(Vec2d::new(0f32, 0f32));
-            ent.set_max_velocity(0.0f32);
         });
 
         world.for_each(|ent: &mut Entity, id: usize| {
@@ -278,7 +277,7 @@ impl Enemy<'_> {
     }
 
     fn cannon_tick(&self, entities: &ObjectStore<Entity>, missiles: &ObjectStore<Missile>) {
-        const SHOOT_COOLDOWN: u32 = 15;
+        const SHOOT_COOLDOWN: u32 = 10;
         if self.num_ticks % SHOOT_COOLDOWN != 0 {
             return;
         }
@@ -295,7 +294,7 @@ impl Enemy<'_> {
                 Vec2d {
                     x: x_missile_direction,
                     y: y_missile_direction,
-                },
+                } * 100.0,
                 true,
             ));
         });
