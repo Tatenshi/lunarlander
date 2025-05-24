@@ -2,10 +2,8 @@ use crate::vecmath::{self, TransformationMatrix, Vec2d};
 
 use super::{
     objectstore::ObjectDefault, BorderBehavior, BOTTOM_BORDER, ENTITY_TOP_BORDER,
-    PLAYER_TOP_BORDER, SIDE_BORDER_LEFT, SIDE_BORDER_RIGHT, WORLD_SIZE,
+    PLAYER_TOP_BORDER, SCROLL_GRAVITY, SIDE_BORDER_LEFT, SIDE_BORDER_RIGHT,
 };
-
-const SCROLL_GRAVITY: Vec2d = Vec2d { x: 0.0, y: 100.0 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Entity {

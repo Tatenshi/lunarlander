@@ -144,6 +144,8 @@ const WORLD_SIZE: Vec2d = Vec2d {
 
 const SIDE_BORDER_LEFT: f32 = 0.0;
 
+const SCROLL_GRAVITY: Vec2d = Vec2d { x: 0.0, y: 50.0 };
+
 const SIDE_BORDER_RIGHT: f32 = WORLD_SIZE.x;
 
 const ENTITY_TOP_BORDER: f32 = -WORLD_SIZE.y;
@@ -391,7 +393,8 @@ impl World {
 
         let mut screen_space_transform = TransformationMatrix::unit();
         screen_space_transform = screen_space_transform
-            * TransformationMatrix::translation_v(starship_entity.position() * -1.0)
+            //* TransformationMatrix::translation_v(starship_entity.position() * -1.0) //fix view on starship
+            * TransformationMatrix::translation_v(WORLD_SIZE / -2.0) // fix view on world
             * TransformationMatrix::translation_v(self.screen_size / 2.0); // center to screen
 
         self.render_grid(canvas, screen_space_transform);
