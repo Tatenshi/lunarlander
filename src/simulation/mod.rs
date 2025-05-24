@@ -521,12 +521,8 @@ impl World {
 
     fn enemy_tick(&mut self) {
         // check if we have enough enemies:
-<<<<<<< HEAD
         self.spawn_enemies();
         self.spawn_obstacles();
-=======
-        //self.spawn_enemies();
->>>>>>> a7390bc (add grid movement temporaray)
 
         self.enemies.for_each(|enemy, _| {
             enemy.tick(
