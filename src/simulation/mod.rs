@@ -544,6 +544,7 @@ impl World {
                 hull: (&BLACK_HOLE_ENEMY),
             };
 
+            new_obstacle.set_max_velocity(100.0);
             new_obstacle.set_position(pos);
             new_obstacle.set_border_behavior(BorderBehavior::Bounce);
 
