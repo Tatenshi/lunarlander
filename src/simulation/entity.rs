@@ -150,7 +150,6 @@ impl Entity {
                         // TODO: destroy missile/entity
                     }
                     BorderBehavior::Bounce => {
-                        print!("Bounce");
                         if (self.would_move_outside_bottom_border(new_pos)) {
                             self.alive = false;
                         } else {

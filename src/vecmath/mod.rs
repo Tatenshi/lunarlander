@@ -38,7 +38,7 @@ impl Vec2d {
         return (self.x * self.x + self.y * self.y).sqrt();
     }
 
-    pub fn len_squared(&self) -> f32 {        
+    pub fn len_squared(&self) -> f32 {
         return self.x * self.x + self.y * self.y;
     }
 

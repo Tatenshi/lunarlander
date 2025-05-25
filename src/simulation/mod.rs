@@ -68,6 +68,7 @@ pub const BIT_SHOOT_LEFT: u16 = 0b10000;
 pub const BIT_SHOOT_RIGHT: u16 = 0b100000;
 pub const BIT_SHOOT_UP: u16 = 0b1000000;
 pub const BIT_SHOOT_DOWN: u16 = 0b10000000;
+pub const BIT_SHOOT_MOUSE: u16 = 0b100000000;
 pub const MOVEMENT_MASK: u16 = BIT_LEFT | BIT_RIGHT | BIT_UP | BIT_DOWN;
 
 pub struct Starship {
@@ -113,6 +114,7 @@ pub enum State {
 
 pub struct World {
     game_control_bits: u16,
+    weapoon_direction: Vec2d,
     entities: ObjectStore<Entity>,
     missiles: ObjectStore<Missile>,
     grid: VertexGrid,
@@ -178,6 +180,7 @@ impl World {
 
         let w = World {
             game_control_bits: 0,
+            weapoon_direction: Vec2d { x: 0.0, y: 0.0 },
             entities: store,
             starship: lander,
             enemies: ObjectStore::new(),
@@ -274,6 +277,9 @@ impl World {
 
                 if self.game_control_bits & BIT_SHOOT_DOWN != 0 {
                     new_shoot_dir = new_shoot_dir + Vec2d { x: 0.0, y: 1.0 };
+                }
+                if self.game_control_bits & BIT_SHOOT_MOUSE != 0 {
+                    new_shoot_dir = self.weapoon_direction;
                 }
                 self.starship.shoot_direction = new_shoot_dir;
 
@@ -432,6 +438,22 @@ impl World {
     pub(crate) fn update_window_size(&mut self, width: f32, height: f32) {
         self.screen_size.x = width;
         self.screen_size.y = height;
+    }
+
+    pub(crate) fn update_mouse_pos(&mut self, x: i32, y: i32) {
+        let starship_entity = self.entities.get_object(self.starship.entity_id);
+
+        let mut screen_space_transform = TransformationMatrix::unit();
+        screen_space_transform = screen_space_transform
+            * TransformationMatrix::translation_v(self.screen_size / -2.0)
+            * TransformationMatrix::translation_v(starship_entity.position() * 1.0);
+
+        let mouse_pos = Vec2d {
+            x: x as f32,
+            y: y as f32,
+        };
+        self.weapoon_direction =
+            screen_space_transform.transform(&mouse_pos) - starship_entity.position();
     }
 
     pub(crate) fn modify_control_bit(&mut self, dir: u16, enable: bool) {
@@ -719,7 +741,7 @@ impl World {
 
             // create collidable hull for entity:
             let enemy_ent = self.entities.get_object(enemy.entity_id);
-            if (!enemy_ent.is_alive()) {
+            if !enemy_ent.is_alive() {
                 enemies_to_delete.push(enemy.entity_id);
             }
             let enemy_pos = enemy_ent.position();
