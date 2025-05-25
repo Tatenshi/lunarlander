@@ -133,7 +133,7 @@ impl Entity {
             }
             // update direction by applying acceleration:
             let accel_fragment = self.acceleration().clone() * (sim_time_in_seconds);
-            let gravity_fragment = self.gravity.clone() + SCROLL_GRAVITY; // * (sim_time_in_seconds);
+            let gravity_fragment = self.gravity.clone(); // * (sim_time_in_seconds);
             self.set_direction(self.direction() + accel_fragment + gravity_fragment);
 
             self.set_direction(if self.direction().len() > self.max_velocity() {
@@ -141,7 +141,8 @@ impl Entity {
             } else {
                 self.direction()
             });
-            let mut new_pos = self.position() + self.direction().clone() * (sim_time_in_seconds);
+            let mut new_pos =
+                self.position() + (self.direction() + SCROLL_GRAVITY) * (sim_time_in_seconds);
             if self.would_crosses_border(new_pos) {
                 match self.border_behavior() {
                     BorderBehavior::Dismiss => {
