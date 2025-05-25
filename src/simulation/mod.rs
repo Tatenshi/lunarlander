@@ -322,6 +322,7 @@ impl World {
                 let mut accel_factor = dir_vec * MAX_ACCELERATION;
                 if self.game_control_bits & BIT_BOOST != 0 && self.boost_fuel > 0.0 {
                     e.set_max_velocity(VELOCITY_SPACESHIP * 2.0);
+                    accel_factor = accel_factor * 2.0;
                 } else {
                     e.set_max_velocity(VELOCITY_SPACESHIP);
                 }
@@ -471,8 +472,8 @@ impl World {
             self.boost_fuel.round() as u32,
             MAX_BOOST_TIME_MS as u32,
             Vec2d {
-                x: 5.0,
-                y: self.screen_size.y / 2.0 + 50.0,
+                x: 15.0,
+                y: self.screen_size.y / 2.0,
             },
             self.screen_size.x as u32 / 2 - WORLD_SIZE.x as u32 / 2,
             Color {

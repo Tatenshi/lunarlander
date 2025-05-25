@@ -26,23 +26,23 @@ impl Bar {
 
         // If we have zero elements, we draw no filling
         if elements != 0 {
-            draw::draw_rect(canvas, &pos, length, HEIGHT, inner_color, true).unwrap();
+            draw::draw_rect(canvas, &pos, HEIGHT, length, inner_color, true).unwrap();
         }
 
         // Draw outer border
         let mut points: Vec<Vec2d> = Vec::new();
         points.push(pos);
         points.push(Vec2d {
-            x: pos.x + max_length as f32,
-            y: pos.y,
-        });
-        points.push(Vec2d {
-            x: pos.x + max_length as f32,
-            y: pos.y + HEIGHT as f32,
-        });
-        points.push(Vec2d {
             x: pos.x,
-            y: pos.y + HEIGHT as f32,
+            y: pos.y + max_length as f32,
+        });
+        points.push(Vec2d {
+            x: pos.x + HEIGHT as f32,
+            y: pos.y + max_length as f32,
+        });
+        points.push(Vec2d {
+            x: pos.x + HEIGHT as f32,
+            y: pos.y,
         });
         draw::neon_draw_lines(
             canvas,
