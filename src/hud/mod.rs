@@ -16,7 +16,8 @@ pub struct Hud {
     score: u32,
     boost: f32,
     asteroids: u32,
-    frames_since_last_fps_update: u32,
+    last_fps: u32,
+    fps_since_last_hud_update: Vec<u32>,
 }
 
 impl Hud {
@@ -29,12 +30,21 @@ impl Hud {
             score: 0,
             boost: 0.0,
             asteroids: 0,
-            frames_since_last_fps_update: 0,
+            last_fps: 0,
+            fps_since_last_hud_update: Vec::new(),
         }
     }
 
     pub fn tick(&mut self, time_in_ms: f32) {
-        self.frames_since_last_fps_update = (1000.0 / time_in_ms) as u32;
+        self.fps_since_last_hud_update
+            .push((1000.0 / time_in_ms) as u32);
+
+        // Refresh last_fps when we have gathered 60 frames
+        if self.fps_since_last_hud_update.len() > 60 {
+            let fps_sum: u32 = self.fps_since_last_hud_update.iter().sum();
+            self.last_fps = fps_sum / self.fps_since_last_hud_update.len() as u32;
+            self.fps_since_last_hud_update.clear();
+        }
     }
 
     pub fn update(
@@ -56,7 +66,7 @@ impl Hud {
         self.asteroids = asteroids;
     }
 
-    pub fn render(&self, canvas: &mut Canvas<Window>) {
+    pub fn render(&mut self, canvas: &mut Canvas<Window>) {
         let hud_position = format!("Position: x = {}, y = {}", self.position.x, self.position.y);
         let hud_direction = format!(
             "Direction: x = {}, y = {}",
@@ -70,7 +80,7 @@ impl Hud {
         let hud_score = format!("Score: {}", self.score);
         let hud_boost_fuel = format!("Boost fuel: {}", self.boost);
         let hud_asteroids = format!("Enemies: {}", self.asteroids);
-        let hud_fps = format!("FPS: {}", self.frames_since_last_fps_update);
+        let hud_fps = format!("FPS: {}", self.last_fps);
 
         let mut position = 0;
         for line in vec![
