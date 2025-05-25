@@ -730,23 +730,26 @@ impl World {
         let mut swapped_obstacles = ObjectStore::new();
         std::mem::swap(&mut self.obstacles, &mut swapped_obstacles);
 
-        let mut player_died = false;
-
         swapped_obstacles.for_each_immutable(|obstacle, _| {
             if player_died {
                 return;
             }
 
             let obstacle_ent = self.entities.get_object(obstacle.entity_id);
-            let obstacle_transform = make_entity_transform(obstacle_ent);
-            let obstacle_hull = obstacle_transform.transform_many_slice(obstacle.hull);
 
-            let obstacle_hit = collision::hit_test(player_position, &obstacle_hull);
+            if !obstacle_ent.is_alive() {
+                entities_to_delete.push(obstacle.entity_id);
+            } else {
+                let obstacle_transform = make_entity_transform(obstacle_ent);
+                let obstacle_hull = obstacle_transform.transform_many_slice(obstacle.hull);
 
-            if obstacle_hit {
-                self.entities.with(id, |player: &mut Entity| {
-                    player.bounce_back(0.2);
-                });
+                let obstacle_hit = collision::hit_test(player_position, &obstacle_hull);
+
+                if obstacle_hit {
+                    self.entities.with(id, |player: &mut Entity| {
+                        player.bounce_back(0.2);
+                    });
+                }
             }
         });
 
@@ -830,8 +833,12 @@ impl World {
 
         // swap back:
         std::mem::swap(&mut self.enemies, &mut swapped_enemies);
-        std::mem::swap(&mut self.obstacles, &mut swapped_obstacles);
+
+        // swap back:
         std::mem::swap(&mut self.missiles, &mut swapped_missiles);
+
+        // swap back:
+        std::mem::swap(&mut self.obstacles, &mut swapped_obstacles);
 
         self.update_score(new_score);
         self.texts.extend(new_texts);
