@@ -1,3 +1,4 @@
+use std::fmt::format;
 use std::sync::Arc;
 
 use crate::draw;
@@ -15,6 +16,7 @@ pub struct Hud {
     score: u32,
     boost: f32,
     asteroids: u32,
+    frames_since_last_fps_update: u32,
 }
 
 impl Hud {
@@ -27,7 +29,12 @@ impl Hud {
             score: 0,
             boost: 0.0,
             asteroids: 0,
+            frames_since_last_fps_update: 0,
         }
+    }
+
+    pub fn tick(&mut self, time_in_ms: f32) {
+        self.frames_since_last_fps_update = (1000.0 / time_in_ms) as u32;
     }
 
     pub fn update(
@@ -63,6 +70,7 @@ impl Hud {
         let hud_score = format!("Score: {}", self.score);
         let hud_boost_fuel = format!("Boost fuel: {}", self.boost);
         let hud_asteroids = format!("Enemies: {}", self.asteroids);
+        let hud_fps = format!("FPS: {}", self.frames_since_last_fps_update);
 
         let mut position = 0;
         for line in vec![
@@ -73,6 +81,7 @@ impl Hud {
             hud_score,
             hud_boost_fuel,
             hud_asteroids,
+            hud_fps,
         ] {
             draw::draw_text(
                 canvas,
