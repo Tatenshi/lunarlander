@@ -127,6 +127,7 @@ pub struct World {
     game_state: State,
     score: u32,
     lifes: u32,
+    max_lifes: u32,
     multiplier: f32,
     kills_this_life: u32,
     screen_size: Vec2d,
@@ -180,6 +181,8 @@ impl World {
             lander.entity_id = entity_index;
         });
 
+        const MAX_LIFES: u32 = 3;
+
         let w = World {
             game_control_bits: 0,
             weapoon_direction: Vec2d { x: 0.0, y: 0.0 },
@@ -194,7 +197,8 @@ impl World {
             missiles: ObjectStore::new(),
             grid: VertexGrid::new(),
             score: 0,
-            lifes: 3,
+            lifes: MAX_LIFES,
+            max_lifes: MAX_LIFES,
             kills_this_life: 0,
             multiplier: 1.0,
             sound: sound::Sound::new(),
@@ -415,6 +419,39 @@ impl World {
 
         self.render_missiles(screen_space_transform, canvas, textures);
         self.render_hud(canvas);
+
+        self.render_healthbar(canvas, textures);
+    }
+
+    fn render_healthbar(
+        &self,
+        canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+        textures: &HashMap<String, Texture<'_>>,
+    ) {
+        // Draw Healthbar on the side of the window.
+        draw::bar::Bar::render(
+            canvas,
+            textures,
+            self.lifes,
+            self.max_lifes,
+            Vec2d {
+                x: 5.0,
+                y: self.screen_size.y / 2.0,
+            },
+            self.screen_size.x as u32 / 2 - WORLD_SIZE.x as u32 / 2,
+            Color {
+                r: 255,
+                g: 0,
+                b: 0,
+                a: 255,
+            },
+            Color {
+                r: 255,
+                g: 255,
+                b: 255,
+                a: 255,
+            },
+        );
     }
 
     fn render_missiles(
@@ -818,9 +855,9 @@ impl World {
 
         if player_died {
             self.sound.die();
+            self.lifes -= 1;
             // Ideally, make a huge explosion.
             if self.lifes > 0 && self.game_state == State::Running {
-                self.lifes -= 1;
                 self.kills_this_life = 0;
                 self.multiplier = 1.0;
                 self.game_state = State::WaitingForRespawn(4.0);
