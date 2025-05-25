@@ -109,6 +109,7 @@ impl Enemy<'_> {
         screen_space_transform: TransformationMatrix,
         textures: &HashMap<String, Texture<'_>>,
         source_entity: &Entity,
+        screen_scale: f32,
     ) {
         let items: &[Vec2d];
         let col;
@@ -147,7 +148,8 @@ impl Enemy<'_> {
             graphics::ENTITY_SCALE.x,
             graphics::ENTITY_SCALE.y,
         );
-        let entity_trans = source_entity.get_screenspace_transform(screen_space_transform) * scale;
+        let entity_trans =
+            source_entity.get_screenspace_transform(screen_space_transform, screen_scale) * scale;
         let texture = textures.get("neon").unwrap();
         let geometry = entity_trans.transform_many(&items.to_vec());
         draw::neon_draw_lines(canvas, &geometry, col, true, texture).unwrap();

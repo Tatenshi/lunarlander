@@ -403,19 +403,20 @@ impl World {
         screen_space_transform = screen_space_transform
         // * TransformationMatrix::translation_v(starship_entity.position() * -1.0) //fix view on starship
          * TransformationMatrix::translation_v(WORLD_SIZE / -2.0 ) // fix view on world
-         * TransformationMatrix::translation_v(self.screen_size * (1.0/self.screen_scale) / 2.0); // center to screen
+         * TransformationMatrix::translation_v(self.screen_size * (1.0 / self.screen_scale) / 2.0) // center to screen
+         * TransformationMatrix::scale(self.screen_scale, self.screen_scale); //scale according to screen size
 
         self.render_grid(canvas, screen_space_transform);
-        self.render_world_border(canvas, screen_space_transform);
+        //self.render_world_border(canvas, screen_space_transform);
         self.render_enemies(canvas, screen_space_transform, textures);
         self.render_explosions(canvas, screen_space_transform, textures);
         self.render_texts(canvas, screen_space_transform);
 
         if self.game_state == State::Running {
             self.render_starship(&starship_entity, screen_space_transform, canvas, textures);
+            self.render_missiles(screen_space_transform, canvas, textures);
         }
 
-        self.render_missiles(screen_space_transform, canvas, textures);
         self.render_hud(canvas);
     }
 
@@ -428,7 +429,8 @@ impl World {
         self.missiles.for_each(|missile, _| {
             let entity = self.entities.get_object(missile.entity_id);
             let scale = vecmath::TransformationMatrix::scale(7f32, 7f32);
-            let entity_trans = entity.get_screenspace_transform(screen_space_transform) * scale;
+            let entity_trans =
+                entity.get_screenspace_transform(screen_space_transform, self.screen_scale) * scale;
             let vecs = entity_trans.transform_many(&MISSILE.to_vec());
             let texture = textures.get("neon").unwrap();
             let color = if missile.hostile {
@@ -449,8 +451,6 @@ impl World {
         self.screen_size.x = width;
         self.screen_size.y = height;
         self.screen_scale = height / WORLD_SIZE.y;
-        canvas.set_scale(self.screen_scale, self.screen_scale);
-        canvas.scale();
     }
 
     pub(crate) fn update_mouse_pos(&mut self, x: i32, y: i32) {
@@ -965,7 +965,8 @@ impl World {
             graphics::ENTITY_SCALE.x,
             graphics::ENTITY_SCALE.y,
         );
-        let entity_trans = lander_entity.get_screenspace_transform(screen_space_transform);
+        let entity_trans: TransformationMatrix =
+            lander_entity.get_screenspace_transform(screen_space_transform, self.screen_scale);
         // fix orientation of lander and rotate 90 deg
         let offset = vecmath::TransformationMatrix::rotate(PI / 2.0);
         let transform = entity_trans * scale * offset;
@@ -1001,13 +1002,15 @@ impl World {
         screen_space_transform: TransformationMatrix,
         textures: &HashMap<String, Texture<'_>>,
     ) {
+        let scale = self.screen_scale;
+
         self.enemies.for_each(|enemy, _| {
             let entity = self.entities.get_object(enemy.entity_id);
-            enemy.render(canvas, screen_space_transform, textures, &entity);
+            enemy.render(canvas, screen_space_transform, textures, &entity, scale);
         });
         self.obstacles.for_each(|obstacles, _| {
             let entity = self.entities.get_object(obstacles.entity_id);
-            obstacles.render(canvas, screen_space_transform, textures, &entity);
+            obstacles.render(canvas, screen_space_transform, textures, &entity, scale);
         });
     }
 

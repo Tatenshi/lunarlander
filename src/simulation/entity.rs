@@ -56,8 +56,9 @@ impl Entity {
     pub fn get_screenspace_transform(
         &self,
         screenspace_transform: TransformationMatrix,
+        screen_scale: f32,
     ) -> TransformationMatrix {
-        let pos = vecmath::TransformationMatrix::translation_v(self.position);
+        let pos = vecmath::TransformationMatrix::translation_v(self.position * screen_scale);
         let rot = vecmath::TransformationMatrix::rotate(self.angle);
         return pos * screenspace_transform * rot;
     }
