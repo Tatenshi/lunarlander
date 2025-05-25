@@ -17,25 +17,20 @@ impl Bar {
         inner_color: Color,
         outer_color: Color,
     ) {
-        print!("bar v: {} | max: {}\n", elements, max_elements);
         const SPACE_TO_WORLD_FACTOR: u32 = 5;
         const HEIGHT: u32 = 20;
 
         let max_length = max_allowed_length - max_allowed_length / SPACE_TO_WORLD_FACTOR;
-
+        let length = ((elements as f32 / max_elements as f32) * max_length as f32).round() as u32;
+        print!(
+            "bar v: {} | max: {} | l: {}\n",
+            elements, max_elements, length
+        );
         // Draw filling
 
         // If we have zero elements, we draw no filling
         if elements != 0 {
-            draw::draw_rect(
-                canvas,
-                &pos,
-                ((max_length) / max_elements) * elements,
-                HEIGHT,
-                inner_color,
-                true,
-            )
-            .unwrap();
+            draw::draw_rect(canvas, &pos, length, HEIGHT, inner_color, true).unwrap();
         }
 
         // Draw outer border
