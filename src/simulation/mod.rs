@@ -348,6 +348,8 @@ impl World {
             num_ticks = 1;
         }
 
+        self.hud.tick(time_in_ms);
+
         self.game_state = match self.game_state {
             State::Running => {
                 self.apply_control();
