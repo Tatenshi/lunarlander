@@ -1,7 +1,6 @@
 use core::f32;
 use std::collections::HashMap;
 use std::f32::consts::PI;
-use std::io::empty;
 
 use obstacles::Obstacle;
 use rand::{thread_rng, Rng};
@@ -47,6 +46,8 @@ const MIN_SHOOT_COOLDOWN: f32 = 0.08;
 
 const NUM_EXPLOSION_FARMES: u32 = 50;
 
+const MAX_BOOST_TIME_MS: f32 = 5000.0;
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum BorderBehavior {
     Dismiss,
@@ -69,7 +70,9 @@ pub const BIT_SHOOT_RIGHT: u16 = 0b100000;
 pub const BIT_SHOOT_UP: u16 = 0b1000000;
 pub const BIT_SHOOT_DOWN: u16 = 0b10000000;
 pub const BIT_SHOOT_MOUSE: u16 = 0b100000000;
+pub const BIT_BOOST: u16 = 0b1000000000;
 pub const MOVEMENT_MASK: u16 = BIT_LEFT | BIT_RIGHT | BIT_UP | BIT_DOWN;
+pub const MAX_LIFES: u32 = 3;
 
 pub struct Starship {
     entity_id: usize,
@@ -127,6 +130,7 @@ pub struct World {
     game_state: State,
     score: u32,
     lifes: u32,
+    boost_fuel: f32,
     multiplier: f32,
     kills_this_life: u32,
     screen_size: Vec2d,
@@ -196,6 +200,7 @@ impl World {
             grid: VertexGrid::new(),
             score: 0,
             lifes: 3,
+            boost_fuel: MAX_BOOST_TIME_MS,
             kills_this_life: 0,
             multiplier: 1.0,
             sound: sound::Sound::new(),
@@ -316,7 +321,12 @@ impl World {
                 e.set_direction(e.direction() + new_dir);
 
                 let dir_vec = e.direction();
-                let accel_factor = dir_vec * MAX_ACCELERATION;
+                let mut accel_factor = dir_vec * MAX_ACCELERATION;
+                if self.game_control_bits & BIT_BOOST != 0 && self.boost_fuel > 0.0 {
+                    e.set_max_velocity(VELOCITY_SPACESHIP * 2.0);
+                } else {
+                    e.set_max_velocity(VELOCITY_SPACESHIP);
+                }
                 e.set_acceleration(accel_factor);
 
                 self.starship.drive_enabled = e.direction().is_not_zero();
@@ -374,14 +384,15 @@ impl World {
         self.entities
             .for_each(|e: &mut Entity, _: usize| e.physics_tick(sim_time_in_seconds, num_ticks));
 
-        // self.entities
-        //     .with(self.starship.entity_id, |e: &mut Entity| {
-        //         self.grid.intersect_grid(e.position());
-        //     });
+        self.entities
+            .with(self.starship.entity_id, |e: &mut Entity| {
+                self.grid.intersect_grid(e.position());
+            });
 
         self.missile_tick(time_in_ms);
         self.dismiss_dead_missiles();
         self.enemy_tick();
+        self.fuel_tick(time_in_ms);
 
         self.do_collision_detection();
     }
@@ -418,6 +429,68 @@ impl World {
         }
 
         self.render_hud(canvas);
+
+        self.render_healthbar(canvas, textures);
+    }
+
+    fn render_healthbar(
+        &self,
+        canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+        textures: &HashMap<String, Texture<'_>>,
+    ) {
+        // If the world is bigger than the window size, we dont have any space? Cant do much here
+        if self.screen_size.x - WORLD_SIZE.x < 0.0 {
+            return;
+        }
+        // Draw Healthbar on the side of the window.
+        draw::bar::Bar::render(
+            canvas,
+            textures,
+            self.lifes,
+            MAX_LIFES,
+            Vec2d {
+                x: 5.0,
+                y: self.screen_size.y / 2.0,
+            },
+            self.screen_size.x as u32 / 2 - WORLD_SIZE.x as u32 / 2,
+            Color {
+                r: 255,
+                g: 0,
+                b: 0,
+                a: 255,
+            },
+            Color {
+                r: 255,
+                g: 255,
+                b: 255,
+                a: 255,
+            },
+        );
+
+        // Draw Healthbar on the side of the window.
+        draw::bar::Bar::render(
+            canvas,
+            textures,
+            self.boost_fuel.round() as u32,
+            MAX_BOOST_TIME_MS as u32,
+            Vec2d {
+                x: 5.0,
+                y: self.screen_size.y / 2.0 + 50.0,
+            },
+            self.screen_size.x as u32 / 2 - WORLD_SIZE.x as u32 / 2,
+            Color {
+                r: 255,
+                g: 255,
+                b: 0,
+                a: 255,
+            },
+            Color {
+                r: 255,
+                g: 255,
+                b: 255,
+                a: 255,
+            },
+        );
     }
 
     fn render_missiles(
@@ -506,6 +579,18 @@ impl World {
                 // no direction do not change angle
             }
         })
+    }
+
+    fn fuel_tick(&mut self, time_in_ms: f32) {
+        if self.game_control_bits & BIT_BOOST != 0
+            && self.boost_fuel > 0.0
+            && self.game_control_bits & MOVEMENT_MASK != 0
+        {
+            self.boost_fuel -= time_in_ms;
+            if (self.boost_fuel < 0.0) {
+                self.boost_fuel = 0.0;
+            }
+        }
     }
 
     fn missile_tick(&mut self, time_in_ms: f32) {
@@ -828,9 +913,9 @@ impl World {
 
         if player_died {
             self.sound.die();
+            self.lifes -= 1;
             // Ideally, make a huge explosion.
             if self.lifes > 0 && self.game_state == State::Running {
-                self.lifes -= 1;
                 self.kills_this_life = 0;
                 self.multiplier = 1.0;
                 self.game_state = State::WaitingForRespawn(4.0);
@@ -880,6 +965,7 @@ impl World {
         self.kills_this_life += 1;
         entities_to_delete.push(enemy.entity_id);
         self.grid.add_circular_effect(
+            enemy.entity_id,
             enemy_pos,
             32.0,
             1.0f32,
@@ -892,6 +978,11 @@ impl World {
         }
 
         *new_hit_points += enemy.get_score();
+        self.boost_fuel += 500.0;
+        if (self.boost_fuel > MAX_BOOST_TIME_MS) {
+            self.boost_fuel = MAX_BOOST_TIME_MS;
+        }
+
         if enemy.ty == EnemyType::SpawningRect {
             minirect_spawns.push(missile.entity_id);
         }
@@ -949,6 +1040,7 @@ impl World {
             entity.acceleration(),
             entity.angle(),
             self.score,
+            self.boost_fuel,
             self.enemies.len() as u32,
         );
         self.hud.render(canvas);

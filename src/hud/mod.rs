@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::draw;
 use crate::vecmath::Vec2d;
 use sdl2::pixels::Color;
@@ -11,6 +13,7 @@ pub struct Hud {
     acceleration: Vec2d,
     angle: f32,
     score: u32,
+    boost: f32,
     asteroids: u32,
 }
 
@@ -22,6 +25,7 @@ impl Hud {
             acceleration: Vec2d::new(0.0, 0.0),
             angle: 0.0,
             score: 0,
+            boost: 0.0,
             asteroids: 0,
         }
     }
@@ -33,6 +37,7 @@ impl Hud {
         acceleration: Vec2d,
         angle: f32,
         score: u32,
+        boost: f32,
         asteroids: u32,
     ) {
         self.position = position;
@@ -40,6 +45,7 @@ impl Hud {
         self.acceleration = acceleration;
         self.angle = angle;
         self.score = score;
+        self.boost = boost;
         self.asteroids = asteroids;
     }
 
@@ -55,7 +61,8 @@ impl Hud {
         );
         let hud_angle = format!("Angle: {}", self.angle);
         let hud_score = format!("Score: {}", self.score);
-        let hud_asteroids = format!("Asteroids: {}", self.asteroids);
+        let hud_boost_fuel = format!("Boost fuel: {}", self.boost);
+        let hud_asteroids = format!("Enemies: {}", self.asteroids);
 
         let mut position = 0;
         for line in vec![
@@ -64,6 +71,7 @@ impl Hud {
             hud_acceleration,
             hud_angle,
             hud_score,
+            hud_boost_fuel,
             hud_asteroids,
         ] {
             draw::draw_text(

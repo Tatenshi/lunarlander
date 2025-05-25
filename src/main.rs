@@ -10,8 +10,8 @@ use sdl2::video::Window;
 use std::collections::HashMap;
 
 use simulation::{
-    World, BIT_DOWN, BIT_LEFT, BIT_RIGHT, BIT_SHOOT_DOWN, BIT_SHOOT_LEFT, BIT_SHOOT_MOUSE,
-    BIT_SHOOT_RIGHT, BIT_SHOOT_UP, BIT_UP,
+    World, BIT_BOOST, BIT_DOWN, BIT_LEFT, BIT_RIGHT, BIT_SHOOT_DOWN, BIT_SHOOT_LEFT,
+    BIT_SHOOT_MOUSE, BIT_SHOOT_RIGHT, BIT_SHOOT_UP, BIT_UP,
 };
 
 mod collision;
@@ -100,6 +100,7 @@ pub fn main() -> Result<(), String> {
                                 Keycode::S => sim.modify_control_bit(BIT_DOWN, true),
                                 Keycode::A => sim.modify_control_bit(BIT_LEFT, true),
                                 Keycode::D => sim.modify_control_bit(BIT_RIGHT, true),
+                                Keycode::LShift => sim.modify_control_bit(BIT_BOOST, true),
                                 Keycode::M => sim.toggle_background_music(),
                                 Keycode::R => restart(&mut sim, w, h, &mut canvas),
                                 _ => continue,
@@ -122,6 +123,7 @@ pub fn main() -> Result<(), String> {
                                 Keycode::S => sim.modify_control_bit(BIT_DOWN, false),
                                 Keycode::A => sim.modify_control_bit(BIT_LEFT, false),
                                 Keycode::D => sim.modify_control_bit(BIT_RIGHT, false),
+                                Keycode::LShift => sim.modify_control_bit(BIT_BOOST, false),
                                 _ => continue,
                             },
                             None => continue,

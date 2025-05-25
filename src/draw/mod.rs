@@ -10,6 +10,8 @@ use std::path::Path;
 
 use crate::vecmath::{TransformationMatrix, Vec2d};
 
+pub mod bar;
+
 fn make_vertex(point: &Vec2d, tex_coord: &Vec2d, color: &Color) -> SDL_Vertex {
     let x = point.x;
     let y = point.y;
@@ -173,7 +175,7 @@ pub fn neon_draw_lines(
     Ok(())
 }
 
-pub fn draw_rect<T>(
+pub fn draw_rect(
     canvas: &mut Canvas<Window>,
     origin: &Vec2d,
     width: u32,

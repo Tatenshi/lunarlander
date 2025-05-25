@@ -18,8 +18,10 @@ pub enum CircularEffectType {
     Implosion,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct CircularEffect {
+    // entity this effect relates to
+    entity_id: usize,
     center: Vec2d,
     radius: f32,
     time_to_live: f32,
@@ -35,6 +37,7 @@ enum Effect {
 impl ObjectDefault for Effect {
     fn default() -> Self {
         Effect::Circular(CircularEffect {
+            entity_id: 0,
             center: Vec2d::default(),
             radius: 0.0,
             time_to_live: 0.0,
@@ -82,13 +85,27 @@ impl VertexGrid {
 
     pub fn add_circular_effect(
         &mut self,
+        entity_id: usize,
         center: Vec2d,
         radius: f32,
         time_to_live: f32,
         expansion_speed: f32,
         effect_type: CircularEffectType,
     ) {
+        // if there is already a effect for this entity id
+        // remove it first
+        self.effects.garbage_collect_filter(|eff| match eff {
+            Effect::Circular(e) => {
+                if e.entity_id == entity_id {
+                    //println!("effect for {:?}", e);
+                    true
+                } else {
+                    false
+                }
+            }
+        });
         self.effects.insert_object(Effect::Circular(CircularEffect {
+            entity_id,
             center,
             radius,
             time_to_live,
@@ -137,15 +154,15 @@ impl VertexGrid {
     }
 
     fn apply_force(&mut self, force: Vec2d, pos: Vec2d, delta_t: f32) {
-        let x = ((pos.x as i32) / GRID_DISTANCE as i32) as i32;
-        let y = ((pos.y as i32) / GRID_DISTANCE as i32) as i32;
-
-        if x > WORLD_SIZE.x as i32 || y > WORLD_SIZE.y as i32 || x < 0 || y < 0 {
+        let (x, y) = (pos.x, pos.y);
+        if x > WORLD_SIZE.x || y > WORLD_SIZE.y || x < 0.0 || y < 0.0 {
             return;
         }
 
-        let num_coll = NUM_COL as i32;
-        let index = (y * num_coll + x as i32) as usize;
+        let x_off = (pos.x / GRID_DISTANCE).round() as usize;
+        let y_off = (pos.y / GRID_DISTANCE).round() as usize;
+
+        let index = (y_off + 1) * NUM_COL + (x_off + 1);
         // Stupid defensive programming here...
         if index < self.grid.len() {
             // clip max force to 500 units

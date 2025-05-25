@@ -249,6 +249,7 @@ impl Enemy<'_> {
         }
 
         grid.add_circular_effect(
+            self.entity_id,
             my_pos,
             falloff_range,
             0.25,
