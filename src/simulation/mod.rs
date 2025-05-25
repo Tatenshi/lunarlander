@@ -151,7 +151,7 @@ const WORLD_SIZE: Vec2d = Vec2d {
 
 const SIDE_BORDER_LEFT: f32 = 0.0;
 
-const SCROLL_GRAVITY: Vec2d = Vec2d { x: 0.0, y: 50.0 };
+const SCROLL_GRAVITY: Vec2d = Vec2d { x: 0.0, y: 150.0 };
 
 const SIDE_BORDER_RIGHT: f32 = WORLD_SIZE.x;
 
