@@ -435,6 +435,10 @@ impl World {
         canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
         textures: &HashMap<String, Texture<'_>>,
     ) {
+        // If the world is bigger than the window size, we dont have any space? Cant do much here
+        if self.screen_size.x - WORLD_SIZE.x < 0.0 {
+            return;
+        }
         // Draw Healthbar on the side of the window.
         draw::bar::Bar::render(
             canvas,
