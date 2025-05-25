@@ -105,10 +105,14 @@ impl VertexGrid {
             return;
         }
 
+        // based on the missile position find the surrounding grid cells
         let num_coll = NUM_COL;
-        let x_off = (x / GRID_DISTANCE) as usize;
-        let y_off = (y / GRID_DISTANCE) as usize;
-        let index = y_off * num_coll + x_off;
+        let x_off = (x / GRID_DISTANCE).round() as usize;
+        let y_off = (y / GRID_DISTANCE).round() as usize;
+        // our grid has 1 additional row/col for -distance
+        // therefore the x/y position corresponds to the x/y-index + 1
+        let index = (y_off + 1) * num_coll + (x_off + 1);
+        // println!("idx:{},x:{},y:{}", index, x_off, y_off);
 
         let mut indices: Vec<usize> = Vec::new();
         indices.push(index);
@@ -122,6 +126,7 @@ impl VertexGrid {
             indices.push(index + 1);
             indices.push(index - 1);
         }
+        //println!("indices: {:?}", indices);
 
         for &i in indices.iter() {
             let dir = missile_pos - self.grid[i].position();
@@ -139,7 +144,8 @@ impl VertexGrid {
             return;
         }
 
-        let index = (y + x * NUM_ROW as i32) as usize;
+        let num_coll = NUM_COL as i32;
+        let index = (y * num_coll + x as i32) as usize;
         // Stupid defensive programming here...
         if index < self.grid.len() {
             // clip max force to 500 units
@@ -181,13 +187,13 @@ impl VertexGrid {
             for x in 0..NUM_COL {
                 let x = NUM_COL - x;
                 let rem_ele = self.grid.pop_back();
-                println!("rem_ele: {:?}", rem_ele.unwrap().position(),);
+                // println!("rem_ele: {:?}", rem_ele.unwrap().position(),);
                 let new_pos = Vec2d {
                     x: //rem_ele.unwrap().position().x,
                     x as f32 * GRID_DISTANCE - 2.0*GRID_DISTANCE,
                     y: -GRID_DISTANCE,
                 };
-                println!("new_pos: {:?}", new_pos);
+                // println!("new_pos: {:?}", new_pos);
                 //assert!(rem_ele.is_some());
                 //assert!(rem_ele.unwrap().position().x == new_pos.x);
                 let vertex: Vertex = Vertex::new(new_pos);
@@ -208,39 +214,29 @@ impl VertexGrid {
         canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
         screen_space_transform: TransformationMatrix,
     ) {
-        let row_count = NUM_ROW;
-        let col_count = NUM_COL;
-
         //draw horizontal
-        let mut current_col: usize = 0;
-        let mut j: usize = 0;
-        while j < row_count {
-            let mut i: usize = 0;
-            while i < (col_count - 1) {
-                let p1 = screen_space_transform
-                    .transform(&self.grid[i + (current_col * col_count)].position());
-                let p2: Vec2d = screen_space_transform
-                    .transform(&self.grid[i + 1 + (current_col * col_count)].position());
+        for y in 0..NUM_ROW {
+            for x in 0..(NUM_COL - 1) {
+                let index = x + y * NUM_COL;
+                let index_next_x = index + 1;
+                let p1 = screen_space_transform.transform(&self.grid[index].position());
+                let p2: Vec2d =
+                    screen_space_transform.transform(&self.grid[index_next_x].position());
                 let _ = draw::draw_line(canvas, &p1, &p2, Color::BLUE);
-                i += 1;
             }
-            j += 1;
-            current_col += 1;
         }
 
         //draw vertical
-        let mut current_row: usize = 0;
-        while current_row < col_count {
-            let mut i: usize = 0;
-            while i < (row_count - 1) {
-                let p1 = screen_space_transform
-                    .transform(&self.grid[i * col_count + current_row].position());
-                let p2: Vec2d = screen_space_transform
-                    .transform(&self.grid[(i + 1) * col_count + current_row].position());
+        for y in 0..(NUM_ROW - 1) {
+            for x in 0..NUM_COL {
+                //println!("x:{},y:{}", x, y);
+                let index = x + y * NUM_COL;
+                let index_next_y = index + NUM_COL;
+                let p1 = screen_space_transform.transform(&self.grid[index].position());
+                let p2: Vec2d =
+                    screen_space_transform.transform(&self.grid[index_next_y].position());
                 let _ = draw::draw_line(canvas, &p1, &p2, Color::BLUE);
-                i += 1;
             }
-            current_row += 1;
         }
     }
 }
