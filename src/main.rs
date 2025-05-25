@@ -2,6 +2,7 @@ use sdl2::controller::{Axis, GameController};
 use sdl2::event::{Event, WindowEvent};
 use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
+use sdl2::mouse::MouseButton;
 use sdl2::pixels::Color;
 use sdl2::render::{Canvas, Texture};
 use sdl2::sys::SDL_GetTicks;
@@ -9,8 +10,8 @@ use sdl2::video::Window;
 use std::collections::HashMap;
 
 use simulation::{
-    World, BIT_DOWN, BIT_LEFT, BIT_RIGHT, BIT_SHOOT_DOWN, BIT_SHOOT_LEFT, BIT_SHOOT_RIGHT,
-    BIT_SHOOT_UP, BIT_UP,
+    World, BIT_DOWN, BIT_LEFT, BIT_RIGHT, BIT_SHOOT_DOWN, BIT_SHOOT_LEFT, BIT_SHOOT_MOUSE,
+    BIT_SHOOT_RIGHT, BIT_SHOOT_UP, BIT_UP,
 };
 
 mod collision;
@@ -133,6 +134,55 @@ pub fn main() -> Result<(), String> {
                         sim.update_window_size(width as f32, height as f32)
                     }
                     _ => continue,
+                },
+                Event::MouseMotion {
+                    timestamp,
+                    window_id,
+                    which,
+                    mousestate,
+                    x,
+                    y,
+                    xrel,
+                    yrel,
+                } => {
+                    sim.update_mouse_pos(x, y);
+                }
+                Event::MouseButtonDown {
+                    timestamp: _,
+                    window_id: _,
+                    which: _,
+                    mouse_btn,
+                    clicks: _,
+                    x,
+                    y,
+                } => match mouse_btn {
+                    MouseButton::Left => {
+                        //sim.update_mouse_pos(x, y);
+                        sim.modify_control_bit(BIT_SHOOT_MOUSE, true);
+                    }
+                    MouseButton::Right => {}
+                    MouseButton::Unknown => {}
+                    MouseButton::Middle => {}
+                    MouseButton::X1 => {}
+                    MouseButton::X2 => {}
+                },
+                Event::MouseButtonUp {
+                    timestamp: _,
+                    window_id: _,
+                    which: _,
+                    mouse_btn,
+                    clicks: _,
+                    x: _,
+                    y: _,
+                } => match mouse_btn {
+                    MouseButton::Left => {
+                        sim.modify_control_bit(BIT_SHOOT_MOUSE, false);
+                    }
+                    MouseButton::Right => {}
+                    MouseButton::Unknown => {}
+                    MouseButton::Middle => {}
+                    MouseButton::X1 => {}
+                    MouseButton::X2 => {}
                 },
                 Event::ControllerAxisMotion {
                     timestamp: _,

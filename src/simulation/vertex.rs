@@ -1,5 +1,3 @@
-use std::vec;
-
 use crate::vecmath::Vec2d;
 
 pub struct Vertex {
@@ -100,6 +98,11 @@ impl Vertex {
         if self.direction.is_inf() {
             panic!("dir is inf");
         }
+    }
+
+    pub fn add_offset(&mut self, offset: Vec2d) {
+        self.main_position = self.main_position + offset;
+        self.position = self.position + offset;
     }
 
     pub fn position(&self) -> Vec2d {

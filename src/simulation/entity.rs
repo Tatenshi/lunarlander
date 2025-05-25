@@ -2,10 +2,8 @@ use crate::vecmath::{self, TransformationMatrix, Vec2d};
 
 use super::{
     objectstore::ObjectDefault, BorderBehavior, BOTTOM_BORDER, ENTITY_TOP_BORDER,
-    PLAYER_TOP_BORDER, SIDE_BORDER_LEFT, SIDE_BORDER_RIGHT, WORLD_SIZE,
+    PLAYER_TOP_BORDER, SCROLL_GRAVITY, SIDE_BORDER_LEFT, SIDE_BORDER_RIGHT,
 };
-
-const SCROLL_GRAVITY: Vec2d = Vec2d { x: 0.0, y: 100.0 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Entity {
@@ -17,6 +15,7 @@ pub struct Entity {
     max_velocity: f32,
     border_behavior: BorderBehavior,
     update: bool,
+    alive: bool,
 }
 
 impl ObjectDefault for Entity {
@@ -36,6 +35,7 @@ impl Entity {
             max_velocity: 0.0,
             border_behavior: BorderBehavior::Dismiss,
             update: true,
+            alive: true,
         }
     }
 
@@ -98,6 +98,14 @@ impl Entity {
         self.update
     }
 
+    pub fn is_alive(&self) -> bool {
+        self.alive
+    }
+
+    pub fn revive(&mut self) {
+        self.alive = true;
+    }
+
     pub fn set_direction(&mut self, direction: Vec2d) {
         self.direction = direction;
     }
@@ -142,14 +150,22 @@ impl Entity {
                         // TODO: destroy missile/entity
                     }
                     BorderBehavior::Bounce => {
-                        self.bounce_back(sim_time_in_seconds);
+                        if (self.would_move_outside_bottom_border(new_pos)) {
+                            self.alive = false;
+                        } else {
+                            self.bounce_back(sim_time_in_seconds);
+                        }
                     }
                     BorderBehavior::BounceSlowdown => {
-                        self.set_direction(self.direction() * -0.2);
-                        new_pos =
-                            self.position() + self.direction().clone() * (sim_time_in_seconds);
-                        self.set_position(new_pos);
-                        self.gravity = Vec2d::default();
+                        if (self.would_move_outside_bottom_border(new_pos)) {
+                            self.alive = false;
+                        } else {
+                            self.set_direction(self.direction() * -0.2);
+                            new_pos =
+                                self.position() + self.direction().clone() * (sim_time_in_seconds);
+                            self.gravity = Vec2d::default();
+                            self.set_position(new_pos);
+                        }
                     }
                 }
             } else {
@@ -190,7 +206,7 @@ impl Entity {
         return self.position().y > PLAYER_TOP_BORDER && new_pos.y <= PLAYER_TOP_BORDER;
     }
 
-    fn would_move_outside_bottom_border(&mut self, new_pos: Vec2d) -> bool {
+    pub fn would_move_outside_bottom_border(&mut self, new_pos: Vec2d) -> bool {
         return self.position().y < BOTTOM_BORDER && new_pos.y >= BOTTOM_BORDER;
     }
 }
