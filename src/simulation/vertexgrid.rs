@@ -1,4 +1,4 @@
-use core::panic;
+use std::collections::VecDeque;
 
 use sdl2::pixels::Color;
 
@@ -10,7 +10,7 @@ use crate::{
 use super::{
     objectstore::{ObjectDefault, ObjectStore},
     vertex::Vertex,
-    GRID_DISTANCE, WORLD_SIZE,
+    GRID_DISTANCE, SCROLL_GRAVITY, WORLD_SIZE,
 };
 #[derive(Debug, Clone, Copy)]
 pub enum CircularEffectType {
@@ -45,28 +45,37 @@ impl ObjectDefault for Effect {
 }
 
 pub struct VertexGrid {
-    grid: Vec<Vertex>,
+    // for moving grid use VecDeque to allow efficient push-pop operations
+    // when a line moves past end and is readded to the start
+    grid: VecDeque<Vertex>,
+    cur_scroll_offset: Vec2d,
     effects: ObjectStore<Effect>,
 }
 
+// plus one more element to get the zero line
+// plus two more elements to get a extra border line
+// outside of the word_size view.
+const NUM_COL: usize = (WORLD_SIZE.x / GRID_DISTANCE + 1.0 + 2.0) as usize;
+const NUM_ROW: usize = (WORLD_SIZE.y / GRID_DISTANCE + 1.0 + 2.0) as usize;
+
 impl VertexGrid {
     pub fn new() -> Self {
-        let mut grid: Vec<Vertex> = Vec::new();
+        let mut grid: VecDeque<Vertex> = VecDeque::with_capacity(NUM_COL * NUM_ROW);
 
-        let mut y = 0.0;
-        while y < WORLD_SIZE.y + 1.0 {
-            let mut x = 0.0;
-            while x < WORLD_SIZE.x + 1.0 {
-                let pos: Vec2d = Vec2d::new(x, y);
+        for y in 0..NUM_ROW {
+            for x in 0..NUM_COL {
+                let pos: Vec2d = Vec2d {
+                    x: (x as f32) * GRID_DISTANCE - GRID_DISTANCE,
+                    y: (y as f32) * GRID_DISTANCE - GRID_DISTANCE,
+                };
                 let vertex: Vertex = Vertex::new(pos);
-                grid.push(vertex);
-                x += GRID_DISTANCE;
+                grid.push_back(vertex);
             }
-            y += GRID_DISTANCE;
         }
 
         Self {
             grid,
+            cur_scroll_offset: Vec2d::default(),
             effects: ObjectStore::new(),
         }
     }
@@ -96,10 +105,10 @@ impl VertexGrid {
             return;
         }
 
-        let num_coll = (WORLD_SIZE.x / GRID_DISTANCE + 1.0) as usize;
-        let w_off = (x / GRID_DISTANCE) as usize;
+        let num_coll = NUM_COL;
+        let x_off = (x / GRID_DISTANCE) as usize;
         let y_off = (y / GRID_DISTANCE) as usize;
-        let index = y_off * num_coll + w_off;
+        let index = y_off * num_coll + x_off;
 
         let mut indices: Vec<usize> = Vec::new();
         indices.push(index);
@@ -122,7 +131,7 @@ impl VertexGrid {
         }
     }
 
-    pub fn apply_force(&mut self, force: Vec2d, pos: Vec2d, delta_t: f32) {
+    fn apply_force(&mut self, force: Vec2d, pos: Vec2d, delta_t: f32) {
         let x = ((pos.x as i32) / GRID_DISTANCE as i32) as i32;
         let y = ((pos.y as i32) / GRID_DISTANCE as i32) as i32;
 
@@ -130,8 +139,7 @@ impl VertexGrid {
             return;
         }
 
-        let num_coll = (WORLD_SIZE.x / GRID_DISTANCE + 1.0) as i32;
-        let index = (y * num_coll + x) as usize;
+        let index = (y + x * NUM_ROW as i32) as usize;
         // Stupid defensive programming here...
         if index < self.grid.len() {
             // clip max force to 500 units
@@ -162,7 +170,34 @@ impl VertexGrid {
             self.apply_force(force, pos, delta_t);
         }
 
+        let scroll_t = Vec2d {
+            x: 0.0,
+            y: SCROLL_GRAVITY.y * delta_t,
+        };
+        let next_scroll_offset = self.cur_scroll_offset + scroll_t;
+        self.cur_scroll_offset.y = if next_scroll_offset.y < GRID_DISTANCE {
+            next_scroll_offset.y
+        } else {
+            for x in 0..NUM_COL {
+                let x = NUM_COL - x;
+                let rem_ele = self.grid.pop_back();
+                println!("rem_ele: {:?}", rem_ele.unwrap().position(),);
+                let new_pos = Vec2d {
+                    x: //rem_ele.unwrap().position().x,
+                    x as f32 * GRID_DISTANCE - 2.0*GRID_DISTANCE,
+                    y: -GRID_DISTANCE,
+                };
+                println!("new_pos: {:?}", new_pos);
+                //assert!(rem_ele.is_some());
+                //assert!(rem_ele.unwrap().position().x == new_pos.x);
+                let vertex: Vertex = Vertex::new(new_pos);
+                self.grid.push_front(vertex);
+            }
+            0.0
+        };
+
         for elem in self.grid.iter_mut() {
+            elem.add_offset(scroll_t);
             elem.mov();
             elem.set_dir_back(delta_t);
         }
@@ -173,39 +208,39 @@ impl VertexGrid {
         canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
         screen_space_transform: TransformationMatrix,
     ) {
-        let row_count: usize = ((WORLD_SIZE.x / GRID_DISTANCE) + 1.0) as usize;
-        let col_count = ((WORLD_SIZE.y / GRID_DISTANCE) + 1.0) as usize;
+        let row_count = NUM_ROW;
+        let col_count = NUM_COL;
 
         //draw horizontal
-        let mut current_row: usize = 0;
+        let mut current_col: usize = 0;
         let mut j: usize = 0;
-        while j < col_count {
+        while j < row_count {
             let mut i: usize = 0;
-            while i < (row_count - 1) {
+            while i < (col_count - 1) {
                 let p1 = screen_space_transform
-                    .transform(&self.grid[i + (current_row * row_count)].position());
+                    .transform(&self.grid[i + (current_col * col_count)].position());
                 let p2: Vec2d = screen_space_transform
-                    .transform(&self.grid[i + 1 + (current_row * row_count)].position());
+                    .transform(&self.grid[i + 1 + (current_col * col_count)].position());
                 let _ = draw::draw_line(canvas, &p1, &p2, Color::BLUE);
                 i += 1;
             }
             j += 1;
-            current_row += 1;
+            current_col += 1;
         }
 
         //draw vertical
-        let mut current_col: usize = 0;
-        while current_col < row_count {
+        let mut current_row: usize = 0;
+        while current_row < col_count {
             let mut i: usize = 0;
-            while i < (col_count - 1) {
+            while i < (row_count - 1) {
                 let p1 = screen_space_transform
-                    .transform(&self.grid[i * row_count + current_col].position());
+                    .transform(&self.grid[i * col_count + current_row].position());
                 let p2: Vec2d = screen_space_transform
-                    .transform(&self.grid[(i + 1) * row_count + current_col].position());
+                    .transform(&self.grid[(i + 1) * col_count + current_row].position());
                 let _ = draw::draw_line(canvas, &p1, &p2, Color::BLUE);
                 i += 1;
             }
-            current_col += 1;
+            current_row += 1;
         }
     }
 }

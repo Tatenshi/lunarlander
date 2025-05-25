@@ -146,6 +146,8 @@ const WORLD_SIZE: Vec2d = Vec2d {
 
 const SIDE_BORDER_LEFT: f32 = 0.0;
 
+const SCROLL_GRAVITY: Vec2d = Vec2d { x: 0.0, y: 50.0 };
+
 const SIDE_BORDER_RIGHT: f32 = WORLD_SIZE.x;
 
 const ENTITY_TOP_BORDER: f32 = -WORLD_SIZE.y;
@@ -370,10 +372,10 @@ impl World {
         self.entities
             .for_each(|e: &mut Entity, _: usize| e.physics_tick(sim_time_in_seconds, num_ticks));
 
-        self.entities
-            .with(self.starship.entity_id, |e: &mut Entity| {
-                self.grid.intersect_grid(e.position());
-            });
+        // self.entities
+        //     .with(self.starship.entity_id, |e: &mut Entity| {
+        //         self.grid.intersect_grid(e.position());
+        //     });
 
         self.missile_tick(time_in_ms);
         self.dismiss_dead_missiles();
@@ -397,7 +399,8 @@ impl World {
 
         let mut screen_space_transform = TransformationMatrix::unit();
         screen_space_transform = screen_space_transform
-            * TransformationMatrix::translation_v(starship_entity.position() * -1.0)
+            //* TransformationMatrix::translation_v(starship_entity.position() * -1.0) //fix view on starship
+            * TransformationMatrix::translation_v(WORLD_SIZE / -2.0) // fix view on world
             * TransformationMatrix::translation_v(self.screen_size / 2.0); // center to screen
 
         self.render_grid(canvas, screen_space_transform);
@@ -446,7 +449,8 @@ impl World {
         let mut screen_space_transform = TransformationMatrix::unit();
         screen_space_transform = screen_space_transform
             * TransformationMatrix::translation_v(self.screen_size / -2.0)
-            * TransformationMatrix::translation_v(starship_entity.position() * 1.0);
+            * TransformationMatrix::translation_v(WORLD_SIZE / 2.0);
+        //* TransformationMatrix::translation_v(starship_entity.position() * 1.0);
 
         let mouse_pos = Vec2d {
             x: x as f32,
@@ -711,8 +715,7 @@ impl World {
         let player_transform = make_entity_transform(player_entity);
         let player_hull = player_transform.transform_many_slice(&STARSHIP);
 
-        let mut enemies_to_delete = Vec::<usize>::new();
-        let mut missiles_to_delete = Vec::<usize>::new();
+        let mut entities_to_delete = Vec::<usize>::new();
         let mut minirect_spawns = Vec::<usize>::new();
 
         let mut new_score: u32 = 0;
@@ -723,6 +726,20 @@ impl World {
 
         let mut swapped_missiles = ObjectStore::new();
         std::mem::swap(&mut self.missiles, &mut swapped_missiles);
+
+        let mut swapped_obstacles = ObjectStore::new();
+        std::mem::swap(&mut self.obstacles, &mut swapped_obstacles);
+
+        swapped_obstacles.for_each_immutable(|obstacle, _| {
+            if player_died {
+                return;
+            }
+
+            let obstacle_ent = self.entities.get_object(obstacle.entity_id);
+            if !obstacle_ent.is_alive() {
+                entities_to_delete.push(obstacle.entity_id);
+            }
+        });
 
         swapped_missiles.for_each_immutable(|missile, _| {
             if !missile.hostile || player_died {
@@ -742,7 +759,7 @@ impl World {
             // create collidable hull for entity:
             let enemy_ent = self.entities.get_object(enemy.entity_id);
             if !enemy_ent.is_alive() {
-                enemies_to_delete.push(enemy.entity_id);
+                entities_to_delete.push(enemy.entity_id);
             }
             let enemy_pos = enemy_ent.position();
             let enemy_transform = make_entity_transform(enemy_ent);
@@ -761,7 +778,7 @@ impl World {
                 let missile_entity = self.entities.get_object(missile.entity_id);
 
                 // make sure each missile can only hit once!
-                if missiles_to_delete.contains(&missile.entity_id) {
+                if entities_to_delete.contains(&missile.entity_id) {
                     return;
                 }
 
@@ -772,17 +789,16 @@ impl World {
                     enemy.hitpoints -= 1;
                     if enemy.hitpoints == 0 {
                         self.kill_enemy(
-                            &mut enemies_to_delete,
+                            &mut entities_to_delete,
                             enemy,
                             enemy_pos,
-                            &mut missiles_to_delete,
                             missile,
                             &mut new_score,
                             &mut minirect_spawns,
                             &mut new_texts,
                         );
                     } else {
-                        missiles_to_delete.push(missile.entity_id);
+                        entities_to_delete.push(missile.entity_id);
                     }
                 }
             });
@@ -800,7 +816,7 @@ impl World {
                 self.game_state = State::Lost;
             }
             // destroy all enemies:
-            swapped_enemies.for_each_immutable(|enemy, _| enemies_to_delete.push(enemy.entity_id));
+            swapped_enemies.for_each_immutable(|enemy, _| entities_to_delete.push(enemy.entity_id));
         }
 
         // swap back:
@@ -809,26 +825,30 @@ impl World {
         // swap back:
         std::mem::swap(&mut self.missiles, &mut swapped_missiles);
 
+        // swap back:
+        std::mem::swap(&mut self.obstacles, &mut swapped_obstacles);
+
         self.update_score(new_score);
         self.texts.extend(new_texts);
 
         self.spawn_minirects(minirect_spawns);
 
         self.missiles
-            .garbage_collect_filter(|x| missiles_to_delete.contains(&x.entity_id));
-        self.garbage_collect_entities(&missiles_to_delete);
-        self.garbage_collect_entities(&enemies_to_delete);
+            .garbage_collect_filter(|x| entities_to_delete.contains(&x.entity_id));
+        self.garbage_collect_entities(&entities_to_delete);
+        self.garbage_collect_entities(&entities_to_delete);
         self.enemies
-            .garbage_collect_filter(|a| enemies_to_delete.contains(&a.entity_id))
+            .garbage_collect_filter(|a| entities_to_delete.contains(&a.entity_id));
+        self.obstacles
+            .garbage_collect_filter(|a| entities_to_delete.contains(&a.entity_id));
     }
 
     #[inline]
     fn kill_enemy(
         &mut self,
-        enemies_to_delete: &mut Vec<usize>,
+        entities_to_delete: &mut Vec<usize>,
         enemy: &Enemy<'_>,
         enemy_pos: Vec2d,
-        missiles_to_delete: &mut Vec<usize>,
         missile: &Missile,
         new_hit_points: &mut u32,
         minirect_spawns: &mut Vec<usize>,
@@ -836,7 +856,7 @@ impl World {
     ) {
         self.sound.explode();
         self.kills_this_life += 1;
-        enemies_to_delete.push(enemy.entity_id);
+        entities_to_delete.push(enemy.entity_id);
         self.grid.add_circular_effect(
             enemy_pos,
             32.0,
@@ -845,8 +865,8 @@ impl World {
             CircularEffectType::Explosion,
         );
 
-        if !missiles_to_delete.contains(&missile.entity_id) {
-            missiles_to_delete.push(missile.entity_id);
+        if !entities_to_delete.contains(&missile.entity_id) {
+            entities_to_delete.push(missile.entity_id);
         }
 
         *new_hit_points += enemy.get_score();
