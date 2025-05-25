@@ -47,6 +47,7 @@ pub fn main() -> Result<(), String> {
     let window = video_subsystem
         .window("GWARS", WINDOW_WIDTH, WINDOW_HEIGHT)
         .position_centered()
+        .maximized()
         .resizable()
         .opengl()
         .build()
