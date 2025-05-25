@@ -22,10 +22,6 @@ impl Bar {
 
         let max_length = max_allowed_length - max_allowed_length / SPACE_TO_WORLD_FACTOR;
         let length = ((elements as f32 / max_elements as f32) * max_length as f32).round() as u32;
-        print!(
-            "bar v: {} | max: {} | l: {}\n",
-            elements, max_elements, length
-        );
         // Draw filling
 
         // If we have zero elements, we draw no filling
