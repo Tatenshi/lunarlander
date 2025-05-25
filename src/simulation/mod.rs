@@ -72,6 +72,7 @@ pub const BIT_SHOOT_DOWN: u16 = 0b10000000;
 pub const BIT_SHOOT_MOUSE: u16 = 0b100000000;
 pub const BIT_BOOST: u16 = 0b1000000000;
 pub const MOVEMENT_MASK: u16 = BIT_LEFT | BIT_RIGHT | BIT_UP | BIT_DOWN;
+pub const MAX_LIFES: u32 = 3;
 
 pub struct Starship {
     entity_id: usize,
@@ -425,6 +426,39 @@ impl World {
 
         self.render_missiles(screen_space_transform, canvas, textures);
         self.render_hud(canvas);
+
+        self.render_healthbar(canvas, textures);
+    }
+
+    fn render_healthbar(
+        &self,
+        canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+        textures: &HashMap<String, Texture<'_>>,
+    ) {
+        // Draw Healthbar on the side of the window.
+        draw::bar::Bar::render(
+            canvas,
+            textures,
+            self.lifes,
+            MAX_LIFES,
+            Vec2d {
+                x: 5.0,
+                y: self.screen_size.y / 2.0,
+            },
+            self.screen_size.x as u32 / 2 - WORLD_SIZE.x as u32 / 2,
+            Color {
+                r: 255,
+                g: 0,
+                b: 0,
+                a: 255,
+            },
+            Color {
+                r: 255,
+                g: 255,
+                b: 255,
+                a: 255,
+            },
+        );
     }
 
     fn render_missiles(
@@ -840,9 +874,9 @@ impl World {
 
         if player_died {
             self.sound.die();
+            self.lifes -= 1;
             // Ideally, make a huge explosion.
             if self.lifes > 0 && self.game_state == State::Running {
-                self.lifes -= 1;
                 self.kills_this_life = 0;
                 self.multiplier = 1.0;
                 self.game_state = State::WaitingForRespawn(4.0);
