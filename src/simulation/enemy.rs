@@ -264,6 +264,11 @@ impl Enemy<'_> {
                 return;
             }
             let pos = ent.position();
+            if pos == my_pos {
+                // If the other entitiy is already inside the black hole, dont try to pull it further.
+                // Otherwise this can lead to a division by zero when normalizing a zero vector, which is not allowed
+                return;
+            }
             let dist = (pos - my_pos).len();
             let dir = (my_pos - pos).normalized() * 800f32;
             let mut dist_falloff = 1.0f32 - (dist / falloff_range);
