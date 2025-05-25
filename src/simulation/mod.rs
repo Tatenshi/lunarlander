@@ -382,10 +382,10 @@ impl World {
         self.entities
             .for_each(|e: &mut Entity, _: usize| e.physics_tick(sim_time_in_seconds, num_ticks));
 
-        // self.entities
-        //     .with(self.starship.entity_id, |e: &mut Entity| {
-        //         self.grid.intersect_grid(e.position());
-        //     });
+        self.entities
+            .with(self.starship.entity_id, |e: &mut Entity| {
+                self.grid.intersect_grid(e.position());
+            });
 
         self.missile_tick(time_in_ms);
         self.dismiss_dead_missiles();
@@ -955,6 +955,7 @@ impl World {
         self.kills_this_life += 1;
         entities_to_delete.push(enemy.entity_id);
         self.grid.add_circular_effect(
+            enemy.entity_id,
             enemy_pos,
             32.0,
             1.0f32,
