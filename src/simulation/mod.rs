@@ -11,8 +11,8 @@ use sdl2::render::Texture;
 use vertexgrid::CircularEffectType;
 
 use crate::graphics::{
-    self, render_game_over, BLACK_HOLE_ENEMY, CANNON_ENEMY, ENTITY_SCALE, MINIRECT_ENEMY, MISSILE,
-    RECT_ENEMY, ROMBUS_ENEMY, STARSHIP, STARSHIP_COLOR,
+    self, render_game_over, BLACK_HOLE_ENEMY, CANNON_ENEMY, ENTITY_SCALE, ISALAND, MINIRECT_ENEMY,
+    MISSILE, RECT_ENEMY, ROMBUS_ENEMY, STARSHIP, STARSHIP_COLOR,
 };
 use crate::sound;
 use crate::vecmath::TransformationMatrix;
@@ -569,7 +569,7 @@ impl World {
             let obstacle: Obstacle = Obstacle {
                 entity_id: (entity_index),
                 obstacle_type: (obstacles::ObstacleType::Island),
-                hull: (&BLACK_HOLE_ENEMY),
+                hull: (&ISALAND),
             };
 
             new_obstacle.set_max_velocity(100.0);
