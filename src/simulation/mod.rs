@@ -459,6 +459,31 @@ impl World {
                 a: 255,
             },
         );
+
+        // Draw Healthbar on the side of the window.
+        draw::bar::Bar::render(
+            canvas,
+            textures,
+            self.boost_fuel.round() as u32,
+            MAX_BOOST_TIME_MS as u32,
+            Vec2d {
+                x: 5.0,
+                y: self.screen_size.y / 2.0 + 50.0,
+            },
+            self.screen_size.x as u32 / 2 - WORLD_SIZE.x as u32 / 2,
+            Color {
+                r: 255,
+                g: 255,
+                b: 0,
+                a: 255,
+            },
+            Color {
+                r: 255,
+                g: 255,
+                b: 255,
+                a: 255,
+            },
+        );
     }
 
     fn render_missiles(

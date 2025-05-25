@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, f64::consts::E};
 
 use sdl2::{pixels::Color, render::Texture};
 
@@ -17,6 +17,7 @@ impl Bar {
         inner_color: Color,
         outer_color: Color,
     ) {
+        print!("bar v: {} | max: {}\n", elements, max_elements);
         const SPACE_TO_WORLD_FACTOR: u32 = 5;
         const HEIGHT: u32 = 20;
 
