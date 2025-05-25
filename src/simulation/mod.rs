@@ -1,7 +1,6 @@
 use core::f32;
 use std::collections::HashMap;
 use std::f32::consts::PI;
-use std::io::empty;
 
 use obstacles::Obstacle;
 use rand::{thread_rng, Rng};
@@ -47,6 +46,8 @@ const MIN_SHOOT_COOLDOWN: f32 = 0.08;
 
 const NUM_EXPLOSION_FARMES: u32 = 50;
 
+const MAX_BOOST_TIME_MS: f32 = 5000.0;
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum BorderBehavior {
     Dismiss,
@@ -69,6 +70,7 @@ pub const BIT_SHOOT_RIGHT: u16 = 0b100000;
 pub const BIT_SHOOT_UP: u16 = 0b1000000;
 pub const BIT_SHOOT_DOWN: u16 = 0b10000000;
 pub const BIT_SHOOT_MOUSE: u16 = 0b100000000;
+pub const BIT_BOOST: u16 = 0b1000000000;
 pub const MOVEMENT_MASK: u16 = BIT_LEFT | BIT_RIGHT | BIT_UP | BIT_DOWN;
 
 pub struct Starship {
@@ -127,6 +129,7 @@ pub struct World {
     game_state: State,
     score: u32,
     lifes: u32,
+    boost_fuel: f32,
     multiplier: f32,
     kills_this_life: u32,
     screen_size: Vec2d,
@@ -195,6 +198,7 @@ impl World {
             grid: VertexGrid::new(),
             score: 0,
             lifes: 3,
+            boost_fuel: MAX_BOOST_TIME_MS,
             kills_this_life: 0,
             multiplier: 1.0,
             sound: sound::Sound::new(),
@@ -314,7 +318,12 @@ impl World {
                 e.set_direction(e.direction() + new_dir);
 
                 let dir_vec = e.direction();
-                let accel_factor = dir_vec * MAX_ACCELERATION;
+                let mut accel_factor = dir_vec * MAX_ACCELERATION;
+                if self.game_control_bits & BIT_BOOST != 0 && self.boost_fuel > 0.0 {
+                    e.set_max_velocity(VELOCITY_SPACESHIP * 2.0);
+                } else {
+                    e.set_max_velocity(VELOCITY_SPACESHIP);
+                }
                 e.set_acceleration(accel_factor);
 
                 self.starship.drive_enabled = e.direction().is_not_zero();
@@ -380,6 +389,7 @@ impl World {
         self.missile_tick(time_in_ms);
         self.dismiss_dead_missiles();
         self.enemy_tick();
+        self.fuel_tick(time_in_ms);
 
         self.do_collision_detection();
     }
@@ -496,6 +506,18 @@ impl World {
                 // no direction do not change angle
             }
         })
+    }
+
+    fn fuel_tick(&mut self, time_in_ms: f32) {
+        if self.game_control_bits & BIT_BOOST != 0
+            && self.boost_fuel > 0.0
+            && self.game_control_bits & MOVEMENT_MASK != 0
+        {
+            self.boost_fuel -= time_in_ms;
+            if (self.boost_fuel < 0.0) {
+                self.boost_fuel = 0.0;
+            }
+        }
     }
 
     fn missile_tick(&mut self, time_in_ms: f32) {
@@ -882,6 +904,11 @@ impl World {
         }
 
         *new_hit_points += enemy.get_score();
+        self.boost_fuel += 500.0;
+        if (self.boost_fuel > MAX_BOOST_TIME_MS) {
+            self.boost_fuel = MAX_BOOST_TIME_MS;
+        }
+
         if enemy.ty == EnemyType::SpawningRect {
             minirect_spawns.push(missile.entity_id);
         }
@@ -939,6 +966,7 @@ impl World {
             entity.acceleration(),
             entity.angle(),
             self.score,
+            self.boost_fuel,
             self.enemies.len() as u32,
         );
         self.hud.render(canvas);
