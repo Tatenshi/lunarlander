@@ -130,6 +130,7 @@ pub struct World {
     multiplier: f32,
     kills_this_life: u32,
     screen_size: Vec2d,
+    screen_scale: f32,
     sound: sound::Sound,
     axis_l_x: i16,
     axis_l_y: i16,
@@ -202,6 +203,7 @@ impl World {
                 x: window_width as f32,
                 y: window_height as f32,
             },
+            screen_scale: window_height as f32 / WORLD_SIZE.y,
             axis_l_x: 0,
             axis_l_y: 0,
             axis_r_x: 0,
@@ -399,9 +401,9 @@ impl World {
 
         let mut screen_space_transform = TransformationMatrix::unit();
         screen_space_transform = screen_space_transform
-            //* TransformationMatrix::translation_v(starship_entity.position() * -1.0) //fix view on starship
-            * TransformationMatrix::translation_v(WORLD_SIZE / -2.0) // fix view on world
-            * TransformationMatrix::translation_v(self.screen_size / 2.0); // center to screen
+        // * TransformationMatrix::translation_v(starship_entity.position() * -1.0) //fix view on starship
+         * TransformationMatrix::translation_v(WORLD_SIZE / -2.0 ) // fix view on world
+         * TransformationMatrix::translation_v(self.screen_size * (1.0/self.screen_scale) / 2.0); // center to screen
 
         self.render_grid(canvas, screen_space_transform);
         self.render_world_border(canvas, screen_space_transform);
@@ -438,9 +440,17 @@ impl World {
         });
     }
 
-    pub(crate) fn update_window_size(&mut self, width: f32, height: f32) {
+    pub(crate) fn update_window_size(
+        &mut self,
+        width: f32,
+        height: f32,
+        canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+    ) {
         self.screen_size.x = width;
         self.screen_size.y = height;
+        self.screen_scale = height / WORLD_SIZE.y;
+        canvas.set_scale(self.screen_scale, self.screen_scale);
+        canvas.scale();
     }
 
     pub(crate) fn update_mouse_pos(&mut self, x: i32, y: i32) {

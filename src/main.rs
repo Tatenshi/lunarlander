@@ -101,7 +101,7 @@ pub fn main() -> Result<(), String> {
                                 Keycode::A => sim.modify_control_bit(BIT_LEFT, true),
                                 Keycode::D => sim.modify_control_bit(BIT_RIGHT, true),
                                 Keycode::M => sim.toggle_background_music(),
-                                Keycode::R => restart(&mut sim, w, h),
+                                Keycode::R => restart(&mut sim, w, h, &mut canvas),
                                 _ => continue,
                             },
                             None => continue,
@@ -132,7 +132,7 @@ pub fn main() -> Result<(), String> {
                     WindowEvent::SizeChanged(width, height) => {
                         w = width as u32;
                         h = height as u32;
-                        sim.update_window_size(width as f32, height as f32)
+                        sim.update_window_size(width as f32, height as f32, &mut canvas);
                     }
                     _ => continue,
                 },
@@ -203,7 +203,7 @@ pub fn main() -> Result<(), String> {
                     Axis::RightY => {
                         sim.modify_axis(Axis::RightY, value);
                     }
-                    Axis::TriggerLeft => restart(&mut sim, w, h),
+                    Axis::TriggerLeft => restart(&mut sim, w, h, &mut canvas),
                     Axis::TriggerRight => todo!(),
                 },
                 _ => {}
@@ -228,7 +228,12 @@ pub fn main() -> Result<(), String> {
     Ok(())
 }
 
-fn restart(sim: &mut World, w: u32, h: u32) {
+fn restart(
+    sim: &mut World,
+    w: u32,
+    h: u32,
+    canvas: &mut sdl2::render::Canvas<sdl2::video::Window>,
+) {
     *sim = new_simultaion();
-    sim.update_window_size(w as f32, h as f32);
+    sim.update_window_size(w as f32, h as f32, canvas);
 }
