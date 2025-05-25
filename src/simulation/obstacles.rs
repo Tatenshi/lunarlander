@@ -10,7 +10,7 @@ use sdl2::render::Texture;
 
 use crate::{
     draw,
-    graphics::{self, BLACK_HOLE_ENEMY, MINIRECT_ENEMY_COLOR},
+    graphics::{self, ISALAND, RECT_ENEMY_COLOR},
     vecmath::{self, TransformationMatrix, Vec2d},
 };
 
@@ -48,13 +48,13 @@ impl Obstacle<'_> {
         let col;
         match self.obstacle_type {
             ObstacleType::Island => {
-                items = &BLACK_HOLE_ENEMY;
-                col = MINIRECT_ENEMY_COLOR;
+                items = &ISALAND;
+                col = RECT_ENEMY_COLOR;
             }
         }
         let scale = vecmath::TransformationMatrix::scale(
-            graphics::ENTITY_SCALE.x * 5.0,
-            graphics::ENTITY_SCALE.y * 5.0,
+            graphics::ENTITY_SCALE.x,
+            graphics::ENTITY_SCALE.y,
         );
         let entity_trans = source_entity.get_screenspace_transform(screen_space_transform) * scale;
         let texture = textures.get("neon").unwrap();

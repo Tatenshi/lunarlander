@@ -137,25 +137,36 @@ impl Entity {
             if self.would_crosses_border(new_pos) {
                 match self.border_behavior() {
                     BorderBehavior::Dismiss => {
+                        self.set_position(new_pos);
+                        self.gravity = Vec2d::default();
                         // TODO: destroy missile/entity
                     }
                     BorderBehavior::Bounce => {
-                        self.set_direction(self.direction() * -1.0);
-                        new_pos =
-                            self.position() + self.direction().clone() * (sim_time_in_seconds);
-                        self.acceleration = self.acceleration() * -1.0;
-                        self.direction = self.direction() * -1.0;
+                        self.bounce_back(sim_time_in_seconds);
                     }
                     BorderBehavior::BounceSlowdown => {
                         self.set_direction(self.direction() * -0.2);
                         new_pos =
                             self.position() + self.direction().clone() * (sim_time_in_seconds);
+                        self.set_position(new_pos);
+                        self.gravity = Vec2d::default();
                     }
                 }
+            } else {
+                self.gravity = Vec2d::default();
+                self.set_position(new_pos);
             }
-            self.gravity = Vec2d::default();
-            self.set_position(new_pos);
         }
+    }
+
+    pub fn bounce_back(&mut self, bounce_force: f32) {
+        self.set_direction(self.direction() * -1.0);
+        let new_pos = self.position() + self.direction().clone() * bounce_force;
+        self.acceleration = self.acceleration() * -1.0;
+        self.direction = self.direction() * -1.0;
+
+        self.set_position(new_pos);
+        self.gravity = Vec2d::default();
     }
 
     fn would_crosses_border(&mut self, new_pos: Vec2d) -> bool {
