@@ -172,7 +172,7 @@ impl World {
         store.with_new(|player_entity, entity_index| {
             let start_position = Vec2d {
                 x: WORLD_SIZE.x / 2.0,
-                y: WORLD_SIZE.y - 100.0,
+                y: WORLD_SIZE.y / 2.0,
             };
             player_entity.set_position(start_position);
             player_entity.set_max_velocity(VELOCITY_SPACESHIP);
