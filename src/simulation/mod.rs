@@ -534,10 +534,11 @@ impl World {
 
         let mut screen_space_transform = TransformationMatrix::unit();
         screen_space_transform = screen_space_transform
-            * TransformationMatrix::translation_v(self.screen_size / -2.0)
+            * TransformationMatrix::scale(1.0 / self.screen_scale, 1.0 / self.screen_scale)
+            * TransformationMatrix::translation_v(
+                self.screen_size * (1.0 / self.screen_scale) / -2.0,
+            )
             * TransformationMatrix::translation_v(WORLD_SIZE / 2.0);
-        //* TransformationMatrix::translation_v(starship_entity.position() * 1.0);
-
         let mouse_pos = Vec2d {
             x: x as f32,
             y: y as f32,
