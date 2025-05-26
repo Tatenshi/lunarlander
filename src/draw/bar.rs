@@ -18,7 +18,7 @@ impl Bar {
         outer_color: Color,
     ) {
         const SPACE_TO_WORLD_FACTOR: u32 = 5;
-        const HEIGHT: u32 = 20;
+        const WIDTH: u32 = 20;
 
         let max_length = max_allowed_length - max_allowed_length / SPACE_TO_WORLD_FACTOR;
         let length = ((elements as f32 / max_elements as f32) * max_length as f32).round() as u32;
@@ -26,7 +26,18 @@ impl Bar {
 
         // If we have zero elements, we draw no filling
         if elements != 0 {
-            draw::draw_rect(canvas, &pos, HEIGHT, length, inner_color, true).unwrap();
+            draw::draw_rect(
+                canvas,
+                &Vec2d {
+                    x: pos.x,
+                    y: pos.y + (max_length - length) as f32,
+                },
+                WIDTH,
+                length,
+                inner_color,
+                true,
+            )
+            .unwrap();
         }
 
         // Draw outer border
@@ -37,11 +48,11 @@ impl Bar {
             y: pos.y + max_length as f32,
         });
         points.push(Vec2d {
-            x: pos.x + HEIGHT as f32,
+            x: pos.x + WIDTH as f32,
             y: pos.y + max_length as f32,
         });
         points.push(Vec2d {
-            x: pos.x + HEIGHT as f32,
+            x: pos.x + WIDTH as f32,
             y: pos.y,
         });
         draw::neon_draw_lines(
