@@ -139,14 +139,14 @@ pub fn main() -> Result<(), String> {
                     _ => continue,
                 },
                 Event::MouseMotion {
-                    timestamp,
-                    window_id,
-                    which,
-                    mousestate,
+                    timestamp: _,
+                    window_id: _,
+                    which: _,
+                    mousestate: _,
                     x,
                     y,
-                    xrel,
-                    yrel,
+                    xrel: _,
+                    yrel: _,
                 } => {
                     sim.update_mouse_pos(x, y);
                 }
@@ -156,8 +156,8 @@ pub fn main() -> Result<(), String> {
                     which: _,
                     mouse_btn,
                     clicks: _,
-                    x,
-                    y,
+                    x: _,
+                    y: _,
                 } => match mouse_btn {
                     MouseButton::Left => {
                         //sim.update_mouse_pos(x, y);

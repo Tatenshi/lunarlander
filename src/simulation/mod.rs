@@ -324,6 +324,7 @@ impl World {
                 let mut accel_factor = dir_vec * MAX_ACCELERATION;
                 if self.game_control_bits & BIT_BOOST != 0 && self.boost_fuel > 0.0 {
                     e.set_max_velocity(VELOCITY_SPACESHIP * 2.0);
+                    accel_factor = accel_factor * 2.0;
                 } else {
                     e.set_max_velocity(VELOCITY_SPACESHIP);
                 }
@@ -379,7 +380,7 @@ impl World {
         self.explosion_tick();
         self.grid.tick(time_in_ms);
 
-        self.sound.play_background_music();
+        //self.sound.play_background_music();
     }
 
     fn do_gameplay_ticks(&mut self, sim_time_in_seconds: f32, num_ticks: usize, time_in_ms: f32) {
@@ -441,9 +442,9 @@ impl World {
         textures: &HashMap<String, Texture<'_>>,
     ) {
         // If the world is bigger than the window size, we dont have any space? Cant do much here
-        if self.screen_size.x - WORLD_SIZE.x < 0.0 {
-            return;
-        }
+        //if self.screen_size.x - WORLD_SIZE.x < 0.0 {
+        //    return;
+        //}
         // Draw Healthbar on the side of the window.
         draw::bar::Bar::render(
             canvas,
@@ -454,7 +455,7 @@ impl World {
                 x: 5.0,
                 y: self.screen_size.y / 2.0,
             },
-            self.screen_size.x as u32 / 2 - WORLD_SIZE.x as u32 / 2,
+            self.screen_size.y as u32 / 2,
             Color {
                 r: 255,
                 g: 0,
@@ -469,17 +470,17 @@ impl World {
             },
         );
 
-        // Draw Healthbar on the side of the window.
+        // Draw FuelBar on the side of the window.
         draw::bar::Bar::render(
             canvas,
             textures,
             self.boost_fuel.round() as u32,
             MAX_BOOST_TIME_MS as u32,
             Vec2d {
-                x: 5.0,
-                y: self.screen_size.y / 2.0 + 50.0,
+                x: 35.0,
+                y: self.screen_size.y / 2.0,
             },
-            self.screen_size.x as u32 / 2 - WORLD_SIZE.x as u32 / 2,
+            self.screen_size.y as u32 / 2,
             Color {
                 r: 255,
                 g: 255,
