@@ -140,6 +140,8 @@ pub struct World {
     axis_l_y: i16,
     axis_r_x: i16,
     axis_r_y: i16,
+    playerIsStunned: bool,
+    stunnedSince: f32,
 
     active_controle_scheme: ActiveControleScheme,
 }
@@ -213,6 +215,8 @@ impl World {
             axis_l_y: 0,
             axis_r_x: 0,
             axis_r_y: 0,
+            playerIsStunned: false,
+            stunnedSince: 0.0,
 
             active_controle_scheme: ActiveControleScheme::Keyboard,
         };
@@ -263,7 +267,7 @@ impl World {
     }
 
     pub fn apply_control(&mut self) {
-        if self.active_controle_scheme != ActiveControleScheme::Keyboard {
+        if self.active_controle_scheme != ActiveControleScheme::Keyboard || self.playerIsStunned {
             return;
         }
 
@@ -384,6 +388,14 @@ impl World {
     }
 
     fn do_gameplay_ticks(&mut self, sim_time_in_seconds: f32, num_ticks: usize, time_in_ms: f32) {
+        if self.playerIsStunned {
+            self.stunnedSince = self.stunnedSince + sim_time_in_seconds;
+            if self.stunnedSince >= 0.5 {
+                self.playerIsStunned = false;
+                self.stunnedSince = 0.0;
+            }
+        }
+
         self.entities
             .for_each(|e: &mut Entity, _: usize| e.physics_tick(sim_time_in_seconds, num_ticks));
 
@@ -845,8 +857,9 @@ impl World {
                 let obstacle_hit = collision::hit_test(player_position, &obstacle_hull);
 
                 if obstacle_hit {
+                    self.playerIsStunned = true;
                     self.entities.with(id, |player: &mut Entity| {
-                        player.bounce_back(0.2);
+                        player.bounce_back(0.1);
                     });
                 }
             }
