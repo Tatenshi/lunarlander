@@ -668,7 +668,7 @@ impl World {
         });
     }
     fn spawn_obstacles(&mut self) {
-        let max_obstacles: usize = 3;
+        let max_obstacles: usize = 6;
         //limit amount of obstacles
         if self.obstacles.len() >= max_obstacles {
             return;
