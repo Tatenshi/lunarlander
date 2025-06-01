@@ -384,7 +384,7 @@ impl World {
         self.explosion_tick();
         self.grid.tick(time_in_ms);
 
-        //self.sound.play_background_music();
+        self.sound.play_background_music();
     }
 
     fn do_gameplay_ticks(&mut self, sim_time_in_seconds: f32, num_ticks: usize, time_in_ms: f32) {
