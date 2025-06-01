@@ -178,7 +178,10 @@ impl Entity {
     }
 
     pub fn bounce_back(&mut self, bounce_force: f32) {
+        self.direction = self.direction * -1.0;
+        let new_pos = self.position + Vec2d::normalized(&self.direction) * 10.0;
         self.acceleration = self.acceleration() * -bounce_force;
+        self.set_position(new_pos);
         self.gravity = Vec2d::default();
     }
 
