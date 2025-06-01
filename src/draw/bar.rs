@@ -1,4 +1,4 @@
-use std::{collections::HashMap, f64::consts::E};
+use std::{collections::HashMap};
 
 use sdl2::{pixels::Color, render::Texture};
 

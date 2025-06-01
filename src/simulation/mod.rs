@@ -140,8 +140,8 @@ pub struct World {
     axis_l_y: i16,
     axis_r_x: i16,
     axis_r_y: i16,
-    playerIsStunned: bool,
-    stunnedSince: f32,
+    player_is_stunned: bool,
+    stunned_since: f32,
 
     active_controle_scheme: ActiveControleScheme,
 }
@@ -215,8 +215,8 @@ impl World {
             axis_l_y: 0,
             axis_r_x: 0,
             axis_r_y: 0,
-            playerIsStunned: false,
-            stunnedSince: 0.0,
+            player_is_stunned: false,
+            stunned_since: 0.0,
 
             active_controle_scheme: ActiveControleScheme::Keyboard,
         };
@@ -267,7 +267,7 @@ impl World {
     }
 
     pub fn apply_control(&mut self) {
-        if self.active_controle_scheme != ActiveControleScheme::Keyboard || self.playerIsStunned {
+        if self.active_controle_scheme != ActiveControleScheme::Keyboard || self.player_is_stunned {
             return;
         }
 
@@ -388,11 +388,11 @@ impl World {
     }
 
     fn do_gameplay_ticks(&mut self, sim_time_in_seconds: f32, num_ticks: usize, time_in_ms: f32) {
-        if self.playerIsStunned {
-            self.stunnedSince = self.stunnedSince + sim_time_in_seconds;
-            if self.stunnedSince >= 0.5 {
-                self.playerIsStunned = false;
-                self.stunnedSince = 0.0;
+        if self.player_is_stunned {
+            self.stunned_since = self.stunned_since + sim_time_in_seconds;
+            if self.stunned_since >= 0.5 {
+                self.player_is_stunned = false;
+                self.stunned_since = 0.0;
             }
         }
 
@@ -603,7 +603,7 @@ impl World {
             && self.game_control_bits & MOVEMENT_MASK != 0
         {
             self.boost_fuel -= time_in_ms;
-            if (self.boost_fuel < 0.0) {
+            if self.boost_fuel < 0.0 {
                 self.boost_fuel = 0.0;
             }
         }
@@ -857,7 +857,7 @@ impl World {
                 let obstacle_hit = collision::hit_test(player_position, &obstacle_hull);
 
                 if obstacle_hit {
-                    self.playerIsStunned = true;
+                    self.player_is_stunned = true;
                     self.entities.with(id, |player: &mut Entity| {
                         player.bounce_back(0.1);
                     });
@@ -996,7 +996,7 @@ impl World {
 
         *new_hit_points += enemy.get_score();
         self.boost_fuel += 500.0;
-        if (self.boost_fuel > MAX_BOOST_TIME_MS) {
+        if self.boost_fuel > MAX_BOOST_TIME_MS {
             self.boost_fuel = MAX_BOOST_TIME_MS;
         }
 

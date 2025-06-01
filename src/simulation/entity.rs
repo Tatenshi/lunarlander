@@ -152,14 +152,14 @@ impl Entity {
                         // TODO: destroy missile/entity
                     }
                     BorderBehavior::Bounce => {
-                        if (self.would_move_outside_bottom_border(new_pos)) {
+                        if self.would_move_outside_bottom_border(new_pos) {
                             self.alive = false;
                         } else {
                             self.bounce_back(sim_time_in_seconds);
                         }
                     }
                     BorderBehavior::BounceSlowdown => {
-                        if (self.would_move_outside_bottom_border(new_pos)) {
+                        if self.would_move_outside_bottom_border(new_pos) {
                             self.alive = false;
                         } else {
                             self.set_direction(self.direction() * -0.2);

@@ -1,11 +1,10 @@
 use super::{
     entity::Entity,
-    objectstore::{ObjectDefault, ObjectStore},
+    objectstore::{ObjectDefault},
 };
 
 use std::collections::HashMap;
 
-use rand::{thread_rng, Rng};
 use sdl2::render::Texture;
 
 use crate::{
