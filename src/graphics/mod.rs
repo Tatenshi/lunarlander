@@ -72,15 +72,19 @@ pub const BLACK_HOLE_ENEMY: [Vec2d; 8] = [
     Vec2d::new(0.7, -0.7),
 ];
 
-pub const ISALAND: [Vec2d; 8] = [
-    Vec2d::new(5.0, 0.0),
-    Vec2d::new(3.5, 3.5),
-    Vec2d::new(0.0, 5.0),
-    Vec2d::new(-3.5, 3.5),
-    Vec2d::new(-5.0, 0.0),
-    Vec2d::new(-3.5, -3.5),
-    Vec2d::new(0.0, -5.0),
-    Vec2d::new(3.5, -3.5),
+pub const BOUNCER: [Vec2d; 12] = [
+    Vec2d::new(5.0, 0.0),   //1
+    Vec2d::new(-5.0, 0.0),  //5
+    Vec2d::new(5.0, 0.0),   //1
+    Vec2d::new(3.5, 3.5),   //2
+    Vec2d::new(0.0, 5.0),   //3
+    Vec2d::new(0.0, -5.0),  //7
+    Vec2d::new(0.0, 5.0),   //3
+    Vec2d::new(-3.5, 3.5),  //4
+    Vec2d::new(-5.0, 0.0),  //5
+    Vec2d::new(-3.5, -3.5), //6
+    Vec2d::new(0.0, -5.0),  //7
+    Vec2d::new(3.5, -3.5),  //8
 ];
 
 pub const CANNON_ENEMY: [Vec2d; 8] = [

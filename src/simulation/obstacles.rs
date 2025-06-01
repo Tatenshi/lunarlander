@@ -1,7 +1,4 @@
-use super::{
-    entity::Entity,
-    objectstore::{ObjectDefault},
-};
+use super::{entity::Entity, objectstore::ObjectDefault};
 
 use std::collections::HashMap;
 
@@ -9,7 +6,7 @@ use sdl2::render::Texture;
 
 use crate::{
     draw,
-    graphics::{self, ISALAND, RECT_ENEMY_COLOR},
+    graphics::{self, BOUNCER, STARSHIP_COLOR},
     vecmath::{self, TransformationMatrix, Vec2d},
 };
 
@@ -24,7 +21,7 @@ impl ObjectDefault for Obstacle<'_> {
     fn default() -> Self {
         Obstacle {
             entity_id: 0,
-            obstacle_type: ObstacleType::Island,
+            obstacle_type: ObstacleType::Bouncer,
             hull: &[],
         }
     }
@@ -32,7 +29,7 @@ impl ObjectDefault for Obstacle<'_> {
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum ObstacleType {
-    Island,
+    Bouncer,
 }
 
 impl Obstacle<'_> {
@@ -47,9 +44,9 @@ impl Obstacle<'_> {
         let items: &[Vec2d];
         let col;
         match self.obstacle_type {
-            ObstacleType::Island => {
-                items = &ISALAND;
-                col = RECT_ENEMY_COLOR;
+            ObstacleType::Bouncer => {
+                items = &BOUNCER;
+                col = STARSHIP_COLOR;
             }
         }
         let scale = vecmath::TransformationMatrix::scale(
